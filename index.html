@@ -11,6 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="Quadzilla">
   <meta name="application-name" content="Quadzilla">
   <title>Quadzilla (Demo)</title>
+  <meta name="robots" content="noindex">
   <style>
     :root {
       --bg: #0b0d12;
@@ -231,11 +232,181 @@
       .nav button { font-size: 14px; }
       .wordmark-text { font-size: clamp(40px, 12vw, 56px); }
     }
+
+    [hidden] { display: none !important; }
+    .login-gate {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--safe-t) var(--safe-x) var(--safe-b);
+    }
+    .login-card {
+      width: min(420px, 100%);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 28px 24px 24px;
+      box-shadow: 0 0 48px rgba(61, 255, 176, 0.1);
+    }
+    .login-gate .wordmark { align-items: center; width: 100%; margin-bottom: 4px; }
+    .login-gate .wordmark-text { font-size: clamp(40px, 11vw, 64px); text-align: center; width: 100%; }
+    .login-gate .quad-dots { justify-content: center; width: 100%; }
+    .login-gate .brand-kicker { text-align: center; }
+    .login-sub { color: var(--muted); text-align: center; margin: 16px 0 22px; font-size: 15px; line-height: 1.4; }
+    .login-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .login-field label { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .login-field input {
+      appearance: none; width: 100%; min-height: 52px; border-radius: 14px;
+      border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+      font-size: 17px; padding: 0 14px;
+    }
+    .login-field input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+    .login-error { color: var(--danger); min-height: 1.3em; margin: 0 0 12px; font-size: 14px; font-weight: 600; }
   </style>
 </head>
 <body>
-  <div class="app" id="app"></div>
+  <div class="login-gate" id="login-gate">
+    <div class="login-card">
+      <div class="brand-kicker">Four of a kind tracker · Demo</div>
+      <div class="wordmark" role="heading" aria-level="1" aria-label="Quadzilla">
+        <div class="wordmark-text">QUAD<span>ZILLA</span></div>
+        <div class="quad-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      </div>
+      <p class="login-sub">Sign in to open the tracker.</p>
+      <form id="quadzilla-login-form" autocomplete="off">
+        <div class="login-field">
+          <label for="login-username">Username</label>
+          <input id="login-username" name="username" type="text" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" required>
+        </div>
+        <div class="login-field">
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="off" required>
+        </div>
+        <p class="login-error" id="login-error" role="alert"></p>
+        <button type="submit" class="primary" id="login-submit">Sign in</button>
+      </form>
+    </div>
+  </div>
+  <div class="app" id="app" hidden></div>
   <script>
+
+var QuadzillaAuth = (function () {
+  var USER = "ichabods";
+  var SALT_HEX = "5fc9887e0c233a6a5adde5bc5c471a94";
+  var HASH_HEX = "e1a41a452c4c196cd018d2763566b9f0d5da942007e461a48fd9bf9da20aa2ad";
+  var SESSION_KEY = "quadzilla.session.v1";
+  var onReady = null;
+
+  function hexToBytes(hex) {
+    var out = new Uint8Array(hex.length / 2);
+    var i;
+    for (i = 0; i < out.length; i += 1) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+    return out;
+  }
+  function bytesToHex(buf) {
+    var b = new Uint8Array(buf);
+    var s = "";
+    var i;
+    for (i = 0; i < b.length; i += 1) s += (b[i] + 256).toString(16).slice(1);
+    return s;
+  }
+  function safeEqual(a, b) {
+    if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+    var diff = 0;
+    var i;
+    for (i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return diff === 0;
+  }
+  function hashPassword(password) {
+    var salt = hexToBytes(SALT_HEX);
+    var pass = new TextEncoder().encode(password);
+    var combined = new Uint8Array(salt.length + pass.length);
+    combined.set(salt, 0);
+    combined.set(pass, salt.length);
+    return crypto.subtle.digest("SHA-256", combined).then(function (buf) { return bytesToHex(buf); });
+  }
+  function isLoggedIn() {
+    try { return sessionStorage.getItem(SESSION_KEY) === "1"; } catch (err) { return false; }
+  }
+  function setSession(on) {
+    try {
+      if (on) sessionStorage.setItem(SESSION_KEY, "1");
+      else sessionStorage.removeItem(SESSION_KEY);
+    } catch (err) {}
+  }
+  function showLogin() {
+    var gate = document.getElementById("login-gate");
+    var app = document.getElementById("app");
+    if (gate) gate.hidden = false;
+    if (app) { app.hidden = true; app.innerHTML = ""; }
+    var err = document.getElementById("login-error");
+    if (err) err.textContent = "";
+    var pass = document.getElementById("login-password");
+    if (pass) pass.value = "";
+    var user = document.getElementById("login-username");
+    if (user) {
+      user.value = "";
+      setTimeout(function () { try { user.focus(); } catch (err) {} }, 50);
+    }
+  }
+  function showApp() {
+    var gate = document.getElementById("login-gate");
+    var app = document.getElementById("app");
+    if (gate) gate.hidden = true;
+    if (app) app.hidden = false;
+    if (typeof onReady === "function") onReady();
+  }
+  function setError(msg) {
+    var err = document.getElementById("login-error");
+    if (err) err.textContent = msg || "";
+  }
+  function submit(event) {
+    if (event) event.preventDefault();
+    var userEl = document.getElementById("login-username");
+    var passEl = document.getElementById("login-password");
+    var btn = document.getElementById("login-submit");
+    var username = userEl ? String(userEl.value || "").trim() : "";
+    var password = passEl ? String(passEl.value || "") : "";
+    setError("");
+    if (!username || !password) { setError("Enter a username and password."); return; }
+    if (!window.crypto || !crypto.subtle) {
+      setError("Sign-in needs a secure browser (HTTPS).");
+      return;
+    }
+    if (btn) btn.disabled = true;
+    hashPassword(password).then(function (digest) {
+      if (safeEqual(username, USER) && safeEqual(digest, HASH_HEX)) {
+        setSession(true);
+        if (passEl) passEl.value = "";
+        showApp();
+      } else {
+        setError("That username or password is incorrect.");
+        if (passEl) { passEl.value = ""; passEl.focus(); }
+      }
+    }).catch(function () {
+      setError("Couldn’t verify the password. Try again.");
+    }).then(function () {
+      if (btn) btn.disabled = false;
+    });
+  }
+  function bind(ready) {
+    onReady = ready;
+    var form = document.getElementById("quadzilla-login-form");
+    if (form && !form.getAttribute("data-bound")) {
+      form.setAttribute("data-bound", "1");
+      form.addEventListener("submit", submit);
+    }
+    if (isLoggedIn()) showApp();
+    else showLogin();
+  }
+  function logout() {
+    setSession(false);
+    showLogin();
+  }
+  return { isLoggedIn: isLoggedIn, bind: bind, logout: logout };
+})();
 /* QUADS_PARSER_START */
 var QuadsParser = (function () {
   "use strict";
@@ -1996,7 +2167,9 @@ var QuadsProof = (function () {
 
     function renderSettings() {
       if (!ui.managerUnlocked) {
-        return '<div class="card"><h2>Manager only</h2><p class="need">Settings, Reset, Close Week, and approvals need the manager PIN so bartenders can only log hits. Demo PIN: 1234.</p><button type="button" class="primary" data-act="unlock-manager">Enter PIN</button></div>';
+        var locked = '<div class="card"><h2>Manager only</h2><p class="need">Settings, Reset, Close Week, and approvals need the manager PIN so bartenders can only log hits. Demo PIN: 1234.</p><button type="button" class="primary" data-act="unlock-manager">Enter PIN</button></div>';
+        locked += '<div class="card"><h2>Session</h2><p class="need">Signs out of Quadzilla on this iPad. The sign-in screen comes back until someone logs in again.</p><button type="button" class="quiet" data-act="logout" style="width:100%">Log out</button></div>';
+        return locked;
       }
       var s = state.settings;
       var html = '<div class="card"><h2>Manager</h2><p class="need">Unlocked for this session. Bartenders do not see these controls.</p>';
@@ -2018,16 +2191,15 @@ var QuadsProof = (function () {
       html += "</ol></div>";
       html += '<div class="card"><h2>Reset demo data</h2><p class="need">Restores the sample players and clears hands logged on this device.</p>';
       html += '<button type="button" class="primary" data-act="reset" style="background:var(--danger);color:#fff">Reset demo</button></div>';
+      html += '<div class="card"><h2>Session</h2><p class="need">Signs out of Quadzilla on this iPad. The sign-in screen comes back until someone logs in again.</p><button type="button" class="quiet" data-act="logout" style="width:100%">Log out</button></div>';
       return html;
     }
     function render() {
+      if (!QuadzillaAuth.isLoggedIn()) return;
       var active = document.activeElement;
       var focusId = active && active.id ? active.id : null;
       var start = active && typeof active.selectionStart === "number" ? active.selectionStart : null;
       var end = active && typeof active.selectionEnd === "number" ? active.selectionEnd : null;
-      if (ui.view === "settings" && !ui.managerUnlocked && !(ui.sheet && ui.sheet.kind === "pin")) {
-        ui.sheet = { kind: "pin", pin: "", error: "", next: { type: "view", view: "settings" } };
-      }
       var body = ui.view === "log" ? renderLog() : ui.view === "players" ? renderPlayers() : ui.view === "drawing" ? renderDrawing() : ui.view === "settings" ? renderSettings() : renderActivity();
       var html = '<header class="top"><div><div class="brand-kicker">Four of a kind tracker · Demo</div>';
       html += '<div class="wordmark" role="heading" aria-level="1" aria-label="Quadzilla"><div class="wordmark-text">QUAD<span>ZILLA</span></div><div class="quad-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>';
@@ -2117,7 +2289,6 @@ var QuadsProof = (function () {
       var act = btn.getAttribute("data-act");
       if (act === "view") {
         var view = btn.getAttribute("data-view");
-        if (view === "settings" && !ui.managerUnlocked) { openPin({ type: "view", view: "settings" }); render(); return; }
         ui.view = view;
         ui.playerId = null;
       }
@@ -2165,6 +2336,13 @@ var QuadsProof = (function () {
         ui.managerUnlocked = false;
         if (ui.view === "settings") ui.view = "log";
         showToast("Manager locked");
+        return;
+      }
+      else if (act === "logout") {
+        ui.managerUnlocked = false;
+        ui.sheet = null;
+        stopCamera();
+        QuadzillaAuth.logout();
         return;
       }
       else if (act === "add-log") {
@@ -2303,7 +2481,7 @@ var QuadsProof = (function () {
       }, { passive: false });
     }
     installKiosk();
-    render();
+    QuadzillaAuth.bind(function () { render(); });
   })();
   </script>
 </body>
