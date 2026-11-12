@@ -1,0 +1,2310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Quadzilla">
+  <meta name="application-name" content="Quadzilla">
+  <title>Quadzilla (Demo)</title>
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --bg-2: #10131a;
+      --surface: #161a23;
+      --surface-2: #1d2230;
+      --line: #2a3142;
+      --ink: #f4f6fb;
+      --muted: #9aa3b8;
+      --faint: #6b7388;
+      --accent: #3dffb0;
+      --accent-ink: #042016;
+      --accent-dim: rgba(61, 255, 176, 0.16);
+      --accent-glow: rgba(61, 255, 176, 0.55);
+      --warn: #ffc857;
+      --warn-dim: rgba(255, 200, 87, 0.14);
+      --danger: #ff7a86;
+      --danger-dim: rgba(255, 122, 134, 0.14);
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, Roboto, sans-serif;
+      --radius: 20px;
+      --safe-t: max(16px, env(safe-area-inset-top));
+      --safe-b: max(16px, env(safe-area-inset-bottom));
+      --safe-x: max(16px, env(safe-area-inset-left), env(safe-area-inset-right));
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font);
+      -webkit-tap-highlight-color: transparent; overflow: hidden; overscroll-behavior: none;
+      user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-user-drag: none;
+      touch-action: manipulation;
+    }
+    .app { height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+    input, textarea { user-select: text; -webkit-user-select: text; touch-action: manipulation; }
+    button, input { font-family: inherit; color: inherit; }
+    button { cursor: pointer; }
+    button:disabled { opacity: 0.4; cursor: default; }
+    h1, h2, h3, p { margin: 0; }
+    .app { max-width: 980px; margin: 0 auto; height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: var(--safe-t) var(--safe-x) calc(var(--safe-b) + 24px); }
+    header.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+    .brand-kicker { color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 8px; }
+    h1 { font-size: 28px; letter-spacing: -0.03em; font-weight: 700; }
+    .wordmark {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0;
+    }
+    .wordmark-text {
+      font-size: clamp(44px, 9vw, 72px); font-weight: 900; letter-spacing: -0.08em; line-height: 0.82;
+      text-transform: uppercase; color: var(--ink);
+      text-shadow: 0 0 18px var(--accent-glow), 0 0 42px rgba(61, 255, 176, 0.25);
+    }
+    .wordmark-text span { color: var(--accent); }
+    .quad-dots { display: flex; gap: 6px; }
+    .quad-dots i { width: 11px; height: 11px; border-radius: 3px; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); display: block; }
+    .sub { color: var(--muted); margin-top: 10px; font-size: 15px; max-width: 46ch; line-height: 1.4; }
+    .board-title {
+      font-size: clamp(26px, 5vw, 36px); font-weight: 900; letter-spacing: -0.05em; text-transform: uppercase;
+      color: var(--accent); text-shadow: 0 0 16px var(--accent-glow); margin: 0 0 16px;
+    }
+    .badge { display: inline-flex; align-items: center; height: 28px; padding: 0 10px; border-radius: 999px; background: var(--warn-dim); color: var(--warn); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; }
+    .nav { display: flex; gap: 8px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; margin-bottom: 22px; }
+    .nav button { flex: 1; min-height: 48px; border: 0; border-radius: 12px; background: transparent; color: var(--muted); font-size: 16px; font-weight: 650; }
+    .nav button.on { background: var(--surface-2); color: var(--ink); }
+    .quiet { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 12px; min-height: 44px; padding: 0 14px; font-size: 15px; font-weight: 600; }
+    .mic-stage { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 12px 8px 28px; }
+    .mic-hint { color: var(--muted); font-size: 18px; margin-bottom: 6px; }
+    .mic-ex { color: var(--faint); font-size: 15px; margin-bottom: 28px; }
+    .mic-ex strong { color: var(--ink); font-weight: 650; }
+    .mic { appearance: none; width: 196px; height: 196px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; box-shadow: 0 0 0 12px var(--accent-dim), 0 18px 50px var(--accent-glow); transition: transform 0.15s ease; }
+    .mic:active { transform: scale(0.97); }
+    .mic.listening { background: var(--ink); animation: pulse 1.2s ease-in-out infinite; box-shadow: 0 0 0 16px var(--accent-dim), 0 0 80px var(--accent-glow); }
+    .mic svg { width: 72px; height: 72px; display: block; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .listen-label { margin-top: 22px; font-size: 20px; font-weight: 650; min-height: 28px; }
+    .listen-label.live { color: var(--accent); }
+    .transcript { margin-top: 8px; color: var(--muted); font-size: 18px; min-height: 28px; }
+    .note { margin: 18px 0 0; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; color: var(--muted); font-size: 14px; line-height: 1.45; text-align: left; max-width: 560px; }
+    .note.warn { background: var(--warn-dim); border-color: transparent; color: var(--warn); }
+    .typebox { width: 100%; max-width: 640px; margin: 28px auto 0; text-align: left; }
+    .typebox label { display: block; color: var(--faint); font-size: 13px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; }
+    .type-row { display: flex; gap: 10px; }
+    .type-row input { flex: 1; min-height: 56px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); padding: 0 16px; font-size: 18px; }
+    .type-row input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .go { appearance: none; min-width: 88px; border: 0; border-radius: 16px; background: var(--surface-2); font-size: 17px; font-weight: 700; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .chip { appearance: none; border: 1px solid var(--line); background: var(--bg-2); color: var(--muted); border-radius: 999px; padding: 10px 14px; font-size: 14px; }
+    .search { width: 100%; min-height: 56px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); padding: 0 16px; font-size: 18px; margin-bottom: 14px; }
+    .player-row, .pick-btn { appearance: none; width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 18px; padding: 14px 16px; margin-bottom: 10px; min-height: 76px; }
+    .pick-btn { min-height: 88px; font-size: 22px; font-weight: 700; }
+    .avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--accent-dim); color: var(--accent); display: grid; place-items: center; font-weight: 700; flex: none; }
+    .pick-btn .avatar { width: 56px; height: 56px; font-size: 18px; }
+    .who { flex: 1; }
+    .who .name { font-size: 18px; font-weight: 700; }
+    .who .meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .pct { font-size: 18px; font-weight: 700; color: var(--accent); }
+    .back { appearance: none; border: 0; background: transparent; color: var(--accent); font-size: 16px; font-weight: 650; padding: 0 0 14px; }
+    .detail-head { display: flex; align-items: center; gap: 22px; margin: 8px 0 22px; }
+    .ring-wrap { position: relative; width: 148px; height: 148px; flex: none; }
+    .ring-wrap svg { width: 148px; height: 148px; transform: rotate(-90deg); }
+    .ring-label { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+    .ring-label b { font-size: 32px; letter-spacing: -0.03em; }
+    .ring-label span { color: var(--muted); font-size: 13px; }
+    .need { color: var(--muted); margin-bottom: 18px; font-size: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+    .rank { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--faint); border-radius: 14px; min-height: 68px; font-weight: 700; font-size: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .rank small { font-size: 10px; font-weight: 500; color: var(--faint); margin-top: 2px; }
+    .rank.filled { background: var(--accent-dim); color: var(--accent); border-color: transparent; }
+    .rank.filled small { color: var(--muted); }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+    .metric { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+    .metric .n { font-size: 28px; font-weight: 700; letter-spacing: -0.03em; }
+    .metric .l { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+    .card h2 { font-size: 18px; margin-bottom: 10px; }
+    .card ul { margin: 0; padding-left: 18px; color: var(--muted); }
+    .card li { margin: 0 0 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+    th { color: var(--faint); font-weight: 600; font-size: 12px; }
+    .sorts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .activity { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; margin-bottom: 10px; }
+    .activity .title { font-weight: 700; }
+    .activity .meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
+    .flag { display: inline-block; margin-top: 6px; color: var(--warn); font-size: 13px; font-weight: 650; }
+    .undo-btn { appearance: none; border: 0; background: var(--danger-dim); color: var(--danger); border-radius: 12px; min-height: 48px; padding: 0 16px; font-weight: 700; flex: none; }
+    .primary { appearance: none; border: 0; background: var(--accent); color: var(--accent-ink); border-radius: 16px; min-height: 56px; padding: 0 18px; font-size: 18px; font-weight: 800; width: 100%; }
+    .scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.62); display: flex; align-items: flex-end; justify-content: center; z-index: 40; padding: 16px 16px calc(var(--safe-b) + 16px); }
+    .sheet { width: min(560px, 100%); background: var(--surface-2); border: 1px solid var(--line); border-radius: 28px; padding: 28px 24px 22px; text-align: center; }
+    .sheet .who-name { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 6px; }
+    .sheet .rank-hero { font-size: 132px; line-height: 0.9; font-weight: 800; letter-spacing: -0.06em; color: var(--accent); padding: 8px 0 18px; }
+    .sheet .ok { appearance: none; width: 100%; border: 0; border-radius: 18px; min-height: 72px; background: var(--accent); color: var(--accent-ink); font-size: 28px; font-weight: 800; }
+    .sheet .cancel { appearance: none; border: 0; background: transparent; color: var(--muted); min-height: 48px; margin-top: 10px; font-size: 16px; font-weight: 600; width: 100%; }
+    .sheet .dup { background: var(--warn-dim); color: var(--warn); border-radius: 12px; padding: 10px 12px; margin-bottom: 16px; font-size: 14px; font-weight: 650; }
+    .sheet h2 { font-size: 22px; margin-bottom: 16px; }
+    .toast { position: fixed; left: 50%; bottom: calc(var(--safe-b) + 28px); transform: translateX(-50%); background: var(--ink); color: var(--bg); border-radius: 999px; padding: 14px 22px; font-size: 18px; font-weight: 800; z-index: 60; }
+    .foot { color: var(--faint); font-size: 13px; line-height: 1.5; margin-top: 28px; }
+
+    .verified, .unverified, .ai-badge, .suite-badge {
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; margin-right: 6px;
+      border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700;
+    }
+    .verified { background: var(--accent-dim); color: var(--accent); border: 0; }
+    .rejected { background: var(--danger-dim); color: var(--danger); }
+    .stamp {
+      display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px;
+      margin-top: 8px; margin-right: 6px; border: 2px solid var(--accent); color: var(--accent);
+      background: var(--accent-dim); border-radius: 10px; padding: 6px 10px; text-align: left;
+      transform: rotate(-2deg); max-width: 100%;
+    }
+    .stamp .stamp-mark { font-size: 13px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+    .stamp .stamp-meta { font-size: 11px; font-weight: 650; color: var(--ink); opacity: 0.9; text-transform: none; letter-spacing: 0; }
+    .stamp.no { border-color: var(--danger); color: var(--danger); background: var(--danger-dim); transform: rotate(2deg); }
+    .stamp.no .stamp-meta { color: var(--danger); }
+    .unverified { background: var(--warn-dim); color: var(--warn); }
+    .ai-badge { background: #2a3142; color: var(--muted); }
+    .ai-badge.mismatch { background: var(--danger-dim); color: var(--danger); }
+    .suite-badge { background: var(--warn-dim); color: var(--warn); }
+    .suite-badge.ok { background: var(--accent-dim); color: var(--accent); }
+    .thumb, .proof-thumb {
+      width: 56px; height: 56px; object-fit: cover; border-radius: 10px; flex: none;
+      border: 1px solid var(--line); background: var(--bg); cursor: pointer;
+    }
+    .proof-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); text-align: left; }
+    .photo-preview { width: 100%; max-height: 180px; object-fit: cover; border-radius: 14px; margin: 0 0 10px; }
+    .confirm-extra { text-align: left; margin: 0 0 14px; }
+    .sheet .ok:disabled { opacity: 0.35; }
+    .sheet.wide { width: min(640px, 100%); }
+    .viewfinder { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #05060a; border-radius: 18px; overflow: hidden; margin: 8px 0 12px; }
+    .viewfinder video, .viewfinder canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .demo-tag { position: absolute; top: 12px; left: 12px; z-index: 2; background: var(--warn); color: #111; font-weight: 800; letter-spacing: 0.08em; font-size: 12px; padding: 6px 10px; border-radius: 8px; }
+    .scan-box { padding: 36px 12px; }
+    .scan-dot { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); margin: 0 auto 16px; animation: pulse 1s ease-in-out infinite; }
+    .result-card { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 8px 0 16px; }
+    .result-card .row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+    .result-card .row:last-child { border-bottom: 0; }
+    .result-card .k { color: var(--faint); }
+    .result-card .v { font-weight: 700; }
+    .fail-choices { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
+    .rejected { background: var(--danger-dim); color: var(--danger); }
+    .pin-dots { display: flex; justify-content: center; gap: 12px; margin: 8px 0 18px; }
+    .pin-dots span { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line); background: transparent; }
+    .pin-dots span.on { background: var(--accent); border-color: var(--accent); }
+    .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 12px; }
+    .pin-pad button { appearance: none; min-height: 64px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 16px; font-size: 24px; font-weight: 800; }
+    .lock-chip { display: inline-flex; align-items: center; height: 28px; padding: 0 10px; border-radius: 999px; background: var(--surface); color: var(--muted); border: 1px solid var(--line); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+    .success-screen {
+      position: fixed; inset: 0; z-index: 80;
+      background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: var(--safe-t) var(--safe-x) calc(var(--safe-b) + 32px);
+      cursor: pointer;
+    }
+    .success-screen .who-name { font-size: clamp(28px, 6vw, 48px); font-weight: 800; letter-spacing: -0.04em; margin-bottom: 4px; }
+    .success-screen .rank-hero { font-size: clamp(120px, 28vw, 200px); line-height: 0.88; font-weight: 800; letter-spacing: -0.07em; color: var(--accent); text-shadow: 0 0 28px var(--accent-glow); padding: 8px 0 18px; }
+    .success-screen .stamp { transform: none; margin: 8px auto 0; padding: 12px 16px; align-items: center; }
+    .success-screen .stamp-mark { font-size: 22px; }
+    .success-screen .stamp-meta { font-size: 14px; }
+    .countdown-track { width: min(440px, 86vw); height: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; margin-top: 36px; }
+    .countdown-bar { height: 100%; width: 100%; background: var(--accent); box-shadow: 0 0 18px var(--accent-glow); transform-origin: left center; animation: drain 10s linear forwards; }
+    @keyframes drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+    .fail-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .success-screen .need { margin-top: 18px; }
+    .success-photo { width: min(420px, 72vw); max-height: 28vh; object-fit: contain; border-radius: 16px; margin: 6px 0 10px; border: 1px solid var(--line); background: #05060a; }
+    .rotate-btn { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 14px; min-height: 52px; padding: 0 16px; font-size: 16px; font-weight: 700; width: 100%; margin: 8px 0; }
+    .success-screen .rotate-btn { width: auto; min-width: 160px; margin: 8px auto 0; }
+    .toggle-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+    .toggle-row h3 { font-size: 16px; margin-bottom: 4px; }
+    .toggle-row p { color: var(--muted); font-size: 13px; line-height: 1.4; }
+    .switch { appearance: none; flex: none; width: 52px; height: 32px; border: 0; border-radius: 999px; background: #2a3142; position: relative; }
+    .switch.on { background: var(--accent); }
+    .switch::after { content: ""; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: left 0.15s ease; }
+    .switch.on::after { left: 24px; }
+    .viewer { width: min(720px, 100%); }
+    .viewer img { width: 100%; border-radius: 16px; margin: 10px 0 12px; }
+    .mgr { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    @media (max-width: 700px) {
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .sheet .rank-hero { font-size: 108px; }
+      .mic { width: 168px; height: 168px; }
+      .nav button { font-size: 14px; }
+      .wordmark-text { font-size: clamp(40px, 12vw, 56px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app"></div>
+  <script>
+/* QUADS_PARSER_START */
+var QuadsParser = (function () {
+  "use strict";
+
+  var RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+
+  var RANK_TERMS = [
+    { rank: "A", terms: ["pocket rockets", "rockets", "rocket", "bullets", "bullet", "aces", "ace"] },
+    { rank: "K", terms: ["cowboys", "cowboy", "kings", "king"] },
+    { rank: "Q", terms: ["ladies", "lady", "queens", "queen"] },
+    { rank: "J", terms: ["hooks", "hook", "jacks", "jack"] },
+    { rank: "10", terms: ["tens", "ten", "dimes", "dime"] },
+    { rank: "9", terms: ["nines", "nine"] },
+    { rank: "8", terms: ["snowmen", "snowman", "eights", "eight"] },
+    { rank: "7", terms: ["sevens", "seven"] },
+    { rank: "6", terms: ["sixes", "six"] },
+    { rank: "5", terms: ["fives", "five"] },
+    { rank: "4", terms: ["fours"] },
+    { rank: "3", terms: ["treys", "trey", "threes", "three"] },
+    { rank: "2", terms: ["deuces", "deuce", "ducks", "duck", "twos", "two"] }
+  ];
+
+  var FILLERS = [
+    "please", "hey", "yo", "um", "uh", "log", "logged", "record", "track",
+    "got", "get", "hit", "natural", "just", "the", "a", "an", "player",
+    "hand", "me", "to", "and", "on", "for", "of", "kind", "four", "quad",
+    "quads"
+  ];
+
+  function normalize(text) {
+    return String(text || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/['’]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function escapeRe(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function displayName(player) {
+    return [player.first, player.last].filter(Boolean).join(" ").trim();
+  }
+
+  function rankLabel(rank) {
+    if (rank === "A") return "Aces";
+    if (rank === "K") return "Kings";
+    if (rank === "Q") return "Queens";
+    if (rank === "J") return "Jacks";
+    if (rank === "10") return "10s";
+    return rank + "s";
+  }
+
+  function termList() {
+    var list = [];
+    RANK_TERMS.forEach(function (row) {
+      row.terms.forEach(function (term) { list.push({ rank: row.rank, term: term }); });
+    });
+    RANKS.forEach(function (rank) {
+      list.push({ rank: rank, term: rank.toLowerCase() });
+      list.push({ rank: rank, term: rank.toLowerCase() + "s" });
+    });
+    list.push({ rank: "A", term: "as" });
+    list.sort(function (a, b) { return b.term.length - a.term.length; });
+    return list;
+  }
+
+  var TERMS = termList();
+
+  function findRankIn(text) {
+    var n = normalize(text);
+    if (!n) return null;
+    var i;
+    var qualifier = "(?:quads?|four\\s+of\\s+a\\s+kind|four|4)";
+    for (i = 0; i < TERMS.length; i += 1) {
+      var item = TERMS[i];
+      if (item.term === "four" || item.term === "fours" || item.term === "4" || item.term === "4s") continue;
+      var re = new RegExp("(?:^|\\s)" + qualifier + "\\s+" + escapeRe(item.term) + "(?:es|s)?(?:\\s|$)");
+      var m = n.match(re);
+      if (m) return { rank: item.rank, matched: m[0].trim(), source: n };
+    }
+    var fourOnly = n.match(/(?:^|\s)(?:quads?|four\s+of\s+a\s+kind|four|4)\s+(?:fours|four|4s|4)(?:\s|$)/);
+    if (fourOnly) return { rank: "4", matched: fourOnly[0].trim(), source: n };
+    for (i = 0; i < TERMS.length; i += 1) {
+      var row = TERMS[i];
+      var re2 = new RegExp("(?:^|\\s)(" + escapeRe(row.term) + ")(?:\\s|$)");
+      var m2 = n.match(re2);
+      if (m2) return { rank: row.rank, matched: m2[1], source: n };
+    }
+    return null;
+  }
+
+  function stripFillers(text) {
+    return normalize(text).split(" ").filter(Boolean).filter(function (tok) {
+      return FILLERS.indexOf(tok) < 0;
+    }).join(" ");
+  }
+
+  function levenshtein(a, b) {
+    var m = a.length;
+    var n = b.length;
+    if (a === b) return 0;
+    if (!m) return n;
+    if (!n) return m;
+    var prev = [];
+    var i, j;
+    for (j = 0; j <= n; j += 1) prev[j] = j;
+    for (i = 1; i <= m; i += 1) {
+      var cur = [i];
+      for (j = 1; j <= n; j += 1) {
+        var cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+        cur[j] = Math.min(cur[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+      }
+      prev = cur;
+    }
+    return prev[n];
+  }
+
+  function closeTo(a, b) {
+    if (!a || !b) return false;
+    if (a === b) return true;
+    var allow = b.length <= 4 ? 1 : 2;
+    return levenshtein(a, b) <= allow;
+  }
+
+  function cap(word) {
+    if (!word) return "";
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }
+
+  function splitName(query) {
+    var tokens = normalize(query).split(" ").filter(Boolean);
+    if (!tokens.length) return { first: "", last: "" };
+    if (tokens.length === 1) return { first: "", last: cap(tokens[0]) };
+    return { first: tokens.slice(0, -1).map(cap).join(" "), last: cap(tokens[tokens.length - 1]) };
+  }
+
+  function prettyQuery(query) {
+    var parts = splitName(query);
+    return displayName({ first: parts.first, last: parts.last }) || query;
+  }
+
+  function matchPlayers(query, players) {
+    var q = normalize(query);
+    var empty = { matches: [], matchMode: q ? "unknown" : "needsPlayer", nameQuery: q };
+    if (!q) return empty;
+    var list = players || [];
+    var tokens = q.split(" ").filter(Boolean);
+
+    function exactLast(word) { return list.filter(function (p) { return normalize(p.last) === word; }); }
+    function fuzzyLast(word) { return list.filter(function (p) { return closeTo(normalize(p.last), word); }); }
+    function exactFirst(word) { return list.filter(function (p) { return normalize(p.first) === word; }); }
+    function exactFull(word) {
+      return list.filter(function (p) {
+        return normalize(displayName(p)) === word || normalize(p.last + " " + p.first) === word;
+      });
+    }
+
+    if (tokens.length === 1) {
+      var lastHits = exactLast(q);
+      if (lastHits.length === 1) return { matches: lastHits, matchMode: "single", nameQuery: q };
+      if (lastHits.length > 1) return { matches: lastHits, matchMode: "picker", nameQuery: q };
+      var fuzzy = fuzzyLast(q);
+      if (fuzzy.length === 1) return { matches: fuzzy, matchMode: "single", nameQuery: q };
+      if (fuzzy.length > 1) return { matches: fuzzy, matchMode: "picker", nameQuery: q };
+      var firstHits = exactFirst(q);
+      if (firstHits.length === 1) return { matches: firstHits, matchMode: "single", nameQuery: q };
+      if (firstHits.length > 1) return { matches: firstHits, matchMode: "picker", nameQuery: q };
+      var fuzzyFirst = list.filter(function (p) { return closeTo(normalize(p.first), q); });
+      if (fuzzyFirst.length === 1) return { matches: fuzzyFirst, matchMode: "single", nameQuery: q };
+      if (fuzzyFirst.length > 1) return { matches: fuzzyFirst, matchMode: "picker", nameQuery: q };
+      return empty;
+    }
+
+    var full = exactFull(q);
+    if (full.length === 1) return { matches: full, matchMode: "single", nameQuery: q };
+    if (full.length > 1) return { matches: full, matchMode: "picker", nameQuery: q };
+
+    var lastTok = tokens[tokens.length - 1];
+    var firstTok = tokens.slice(0, -1).join(" ");
+    var both = list.filter(function (p) {
+      return closeTo(normalize(p.last), lastTok) && closeTo(normalize(p.first), firstTok);
+    });
+    if (both.length === 1) return { matches: both, matchMode: "single", nameQuery: q };
+    if (both.length > 1) return { matches: both, matchMode: "picker", nameQuery: q };
+
+    var lastOnly = exactLast(lastTok);
+    if (lastOnly.length === 1) return { matches: lastOnly, matchMode: "single", nameQuery: q };
+    if (lastOnly.length > 1) return { matches: lastOnly, matchMode: "picker", nameQuery: q };
+    return empty;
+  }
+
+  function parsePhrase(text, players) {
+    var raw = String(text || "").trim();
+    var n = normalize(raw);
+    var result = { type: "unrecognized", raw: raw, rank: null, nameQuery: null, matches: [], matchMode: null };
+    if (!n) return result;
+
+    if (/^(please\s+)?(undo|scratch|delete|remove)(\s+last(\s+(hand|one|entry|quad)?)?)?$/.test(n)) {
+      result.type = "undo";
+      return result;
+    }
+
+    var needs = n.match(/^(?:what(?:s|\s+does|\s+is)?)\s+(.+?)\s+(?:need|needs|missing|left)(?:\s+to\s+(?:finish|complete|win))?$/);
+    if (!needs) needs = n.match(/^(.+?)\s+(?:need|needs|missing)(?:\s+what)?$/);
+    if (needs) {
+      var needName = stripFillers(needs[1]);
+      var needMatch = matchPlayers(needName, players);
+      result.type = "needs";
+      result.nameQuery = needName;
+      result.matches = needMatch.matches;
+      result.matchMode = needMatch.matchMode;
+      return result;
+    }
+
+    var namePart = "";
+    var rankHit = null;
+    var primary = n.match(/^(.+?)\s+quads?\s+(.+)$/);
+    if (primary) {
+      rankHit = findRankIn(primary[2]);
+      if (rankHit) namePart = stripFillers(primary[1]);
+    }
+    if (!rankHit) {
+      var forPat = n.match(/^(?:quads?|four\s+of\s+a\s+kind|four)\s+(.+?)\s+(?:for|on)\s+(.+)$/);
+      if (forPat) {
+        rankHit = findRankIn(forPat[1]);
+        if (rankHit) namePart = stripFillers(forPat[2]);
+      }
+    }
+    if (!rankHit) {
+      var tail = n.match(/^(.+?)\s+(?:for|on)\s+(.+)$/);
+      if (tail) {
+        rankHit = findRankIn(tail[1]);
+        if (rankHit) namePart = stripFillers(tail[2]);
+      }
+    }
+    if (!rankHit) {
+      rankHit = findRankIn(n);
+      if (rankHit) {
+        var rest = n.replace(rankHit.matched, " ");
+        namePart = stripFillers(rest);
+      }
+    }
+    if (!rankHit) return result;
+
+    result.type = "log";
+    result.rank = rankHit.rank;
+    result.nameQuery = namePart || null;
+    if (!namePart) {
+      result.matchMode = "needsPlayer";
+      result.matches = [];
+      return result;
+    }
+    var matched = matchPlayers(namePart, players);
+    result.matches = matched.matches;
+    result.matchMode = matched.matchMode;
+    return result;
+  }
+
+  return {
+    RANKS: RANKS,
+    normalize: normalize,
+    displayName: displayName,
+    rankLabel: rankLabel,
+    findRankIn: findRankIn,
+    matchPlayers: matchPlayers,
+    parsePhrase: parsePhrase,
+    splitName: splitName,
+    prettyQuery: prettyQuery
+  };
+})();
+/* QUADS_PARSER_END */
+
+/* QUADS_PROOF_START */
+var QuadsProof = (function () {
+  "use strict";
+  var FRESH_MS = 2 * 60 * 1000;
+  var SKEW_MS = 15 * 1000;
+
+  function fitThumbnailSize(width, height, maxEdge) {
+    maxEdge = maxEdge || 640;
+    var w = Number(width) || 0;
+    var h = Number(height) || 0;
+    if (w <= 0 || h <= 0) return { width: maxEdge, height: maxEdge };
+    if (w <= maxEdge && h <= maxEdge) return { width: w, height: h };
+    if (w >= h) return { width: maxEdge, height: Math.max(1, Math.round(h * maxEdge / w)) };
+    return { width: Math.max(1, Math.round(w * maxEdge / h)), height: maxEdge };
+  }
+
+  function hashString(text) {
+    var s = String(text || "");
+    var h1 = 0x811c9dc5;
+    var h2 = 0x811c9dc5;
+    for (var i = 0; i < s.length; i += 1) {
+      var c = s.charCodeAt(i);
+      h1 ^= c;
+      h1 = Math.imul(h1, 0x01000193);
+      h2 ^= c + ((i + 1) & 255);
+      h2 = Math.imul(h2, 16777619);
+    }
+    return (h1 >>> 0).toString(16).padStart(8, "0") + (h2 >>> 0).toString(16).padStart(8, "0");
+  }
+
+  function parseExifAsciiDate(text) {
+    var m = String(text || "").trim().match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+    if (!m) return null;
+    var ms = Date.parse(m[1] + "-" + m[2] + "-" + m[3] + "T" + m[4] + ":" + m[5] + ":" + m[6]);
+    return isNaN(ms) ? null : ms;
+  }
+
+  function readExifIfd(view, tiffStart, ifdOffset, little, tagIds) {
+    if (tiffStart + ifdOffset + 2 > view.byteLength) return null;
+    var count = little ? view.getUint16(tiffStart + ifdOffset, true) : view.getUint16(tiffStart + ifdOffset, false);
+    var i;
+    for (i = 0; i < count; i += 1) {
+      var entry = tiffStart + ifdOffset + 2 + i * 12;
+      if (entry + 12 > view.byteLength) break;
+      var tag = little ? view.getUint16(entry, true) : view.getUint16(entry, false);
+      if (tagIds.indexOf(tag) < 0) continue;
+      var type = little ? view.getUint16(entry + 2, true) : view.getUint16(entry + 2, false);
+      var num = little ? view.getUint32(entry + 4, true) : view.getUint32(entry + 4, false);
+      if (type !== 2 || num < 10) continue;
+      var valOff = little ? view.getUint32(entry + 8, true) : view.getUint32(entry + 8, false);
+      var start = num <= 4 ? entry + 8 : tiffStart + valOff;
+      if (start + num > view.byteLength) continue;
+      var chars = [];
+      var j;
+      for (j = 0; j < num; j += 1) {
+        var code = view.getUint8(start + j);
+        if (code === 0) break;
+        chars.push(String.fromCharCode(code));
+      }
+      var parsed = parseExifAsciiDate(chars.join(""));
+      if (parsed != null) return parsed;
+    }
+    return null;
+  }
+
+  function parseJpegExifDate(buffer) {
+    if (!buffer) return null;
+    var view = new DataView(buffer);
+    if (view.byteLength < 12 || view.getUint16(0) !== 0xFFD8) return null;
+    var offset = 2;
+    while (offset + 4 <= view.byteLength) {
+      if (view.getUint8(offset) !== 0xFF) break;
+      var marker = view.getUint8(offset + 1);
+      var size = view.getUint16(offset + 2);
+      if (marker === 0xE1 && offset + 4 + size - 2 <= view.byteLength + 2) {
+        var exifStart = offset + 4;
+        if (exifStart + 10 < view.byteLength) {
+          var hdr = String.fromCharCode(view.getUint8(exifStart), view.getUint8(exifStart + 1), view.getUint8(exifStart + 2), view.getUint8(exifStart + 3));
+          if (hdr === "Exif") {
+            var tiff = exifStart + 6;
+            var little = view.getUint16(tiff, false) === 0x4949;
+            var magic = little ? view.getUint16(tiff, true) : view.getUint16(tiff, false);
+            if (magic === 0x002A || view.getUint16(tiff + 2, little) === 0x002A) {
+              var ifd0 = little ? view.getUint32(tiff + 4, true) : view.getUint32(tiff + 4, false);
+              var found = readExifIfd(view, tiff, ifd0, little, [0x9003, 0x9004, 0x0132]);
+              if (found != null) return found;
+              var entries = little ? view.getUint16(tiff + ifd0, true) : view.getUint16(tiff + ifd0, false);
+              var next = tiff + ifd0 + 2 + entries * 12;
+              if (next + 4 <= view.byteLength) {
+                var ifd1 = little ? view.getUint32(next, true) : view.getUint32(next, false);
+                if (ifd1) {
+                  found = readExifIfd(view, tiff, ifd1, little, [0x9003, 0x9004, 0x0132]);
+                  if (found != null) return found;
+                }
+              }
+              var i, count = entries;
+              for (i = 0; i < count; i += 1) {
+                var entry = tiff + ifd0 + 2 + i * 12;
+                var tag = little ? view.getUint16(entry, true) : view.getUint16(entry, false);
+                if (tag === 0x8769 && entry + 12 <= view.byteLength) {
+                  var exifIfd = little ? view.getUint32(entry + 8, true) : view.getUint32(entry + 8, false);
+                  found = readExifIfd(view, tiff, exifIfd, little, [0x9003, 0x9004, 0x0132]);
+                  if (found != null) return found;
+                }
+              }
+            }
+          }
+        }
+      }
+      if (marker === 0xDA || size < 2) break;
+      offset += 2 + size;
+    }
+    return null;
+  }
+
+  function sourceTimeMs(fileMeta) {
+    if (!fileMeta) return null;
+    if (fileMeta.exifMs != null && !isNaN(fileMeta.exifMs)) return fileMeta.exifMs;
+    if (fileMeta.lastModified != null && !isNaN(fileMeta.lastModified)) return fileMeta.lastModified;
+    return null;
+  }
+
+  function isFreshCapture(takenAtMs, nowMs, okAtMs, windowMs) {
+    nowMs = nowMs == null ? Date.now() : nowMs;
+    windowMs = windowMs == null ? FRESH_MS : windowMs;
+    if (takenAtMs == null || isNaN(takenAtMs)) return false;
+    var versusNow = nowMs - takenAtMs;
+    if (versusNow < -SKEW_MS || versusNow > windowMs) return false;
+    if (okAtMs != null && !isNaN(okAtMs)) {
+      var versusOk = takenAtMs - okAtMs;
+      if (versusOk < -windowMs || versusOk > windowMs + SKEW_MS) return false;
+    }
+    return true;
+  }
+
+  function freshnessReason(takenAtMs, nowMs, okAtMs, existingHashes, hash) {
+    if (hash && existingHashes && existingHashes.indexOf(hash) >= 0) return "duplicate photo";
+    if (!isFreshCapture(takenAtMs, nowMs, okAtMs)) return "stale timestamp";
+    return null;
+  }
+
+  function compressCanvas(canvas, quality) {
+    quality = quality == null ? 0.7 : quality;
+    var dataUrl = canvas.toDataURL("image/jpeg", quality);
+    if (dataUrl.length > 120000 && quality > 0.45) return compressCanvas(canvas, Math.max(0.45, quality - 0.15));
+    return dataUrl;
+  }
+
+  function drawToThumbnail(img, maxEdge) {
+    var size = fitThumbnailSize(img.width, img.height, maxEdge || 640);
+    var canvas = document.createElement("canvas");
+    canvas.width = size.width;
+    canvas.height = size.height;
+    var ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, size.width, size.height);
+    return { dataUrl: compressCanvas(canvas, 0.7), width: size.width, height: size.height };
+  }
+
+  function processCapture(file, cb) {
+    if (!file) { cb(new Error("no file")); return; }
+    var lastModified = file.lastModified;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var buf = reader.result;
+      var exifMs = parseJpegExifDate(buf);
+      var blob = new Blob([buf]);
+      var url = URL.createObjectURL(blob);
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var out = drawToThumbnail(img, 640);
+          URL.revokeObjectURL(url);
+          out.capturedAtMs = Date.now();
+          out.lastModified = lastModified;
+          out.exifMs = exifMs;
+          out.sourceTimeMs = sourceTimeMs(out);
+          out.hash = hashString(out.dataUrl);
+          cb(null, out);
+        } catch (err) {
+          try { URL.revokeObjectURL(url); } catch (e2) {}
+          cb(err);
+        }
+      };
+      img.onerror = function () {
+        try { URL.revokeObjectURL(url); } catch (e2) {}
+        cb(new Error("bad image"));
+      };
+      img.src = url;
+    };
+    reader.onerror = function () { cb(new Error("read fail")); };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function formatStamp(ms, tz) {
+    tz = tz || "America/Los_Angeles";
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: tz, month: "short", day: "numeric", year: "numeric",
+      hour: "numeric", minute: "2-digit", second: "2-digit"
+    }).format(new Date(ms));
+  }
+
+  function exportJpeg(canvas, quality) {
+    return { dataUrl: compressCanvas(canvas, quality == null ? 0.7 : quality), width: canvas.width, height: canvas.height };
+  }
+
+  function drawWatermark(canvas, opts) {
+    opts = opts || {};
+    var ctx = canvas.getContext("2d");
+    var w = canvas.width;
+    var h = canvas.height;
+    var bar = Math.max(28, Math.round(h * 0.1));
+    ctx.fillStyle = "rgba(0,0,0,0.62)";
+    ctx.fillRect(0, h - bar, w, bar);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold " + Math.max(12, Math.round(bar * 0.32)) + "px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textBaseline = "middle";
+    var left = opts.atMs != null ? formatStamp(opts.atMs, opts.tz) : "";
+    var right = opts.machine ? ("Machine " + String(opts.machine)) : "";
+    ctx.textAlign = "left";
+    ctx.fillText(left, Math.round(w * 0.03), h - bar / 2, Math.round(w * 0.62));
+    if (right) {
+      ctx.textAlign = "right";
+      ctx.fillText(right, w - Math.round(w * 0.03), h - bar / 2, Math.round(w * 0.32));
+    }
+    if (opts.demo) {
+      var tagH = Math.max(22, Math.round(h * 0.08));
+      ctx.fillStyle = "#ffc857";
+      ctx.fillRect(0, 0, w, tagH);
+      ctx.fillStyle = "#111";
+      ctx.font = "bold " + Math.max(12, Math.round(tagH * 0.45)) + "px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("DEMO CAMERA", w / 2, tagH / 2);
+    }
+    if (opts.mark === "verified" || opts.mark === "rejected") {
+      var verified = opts.mark === "verified";
+      var label = verified ? "4REAL \u2713 VERIFIED" : "NOT 4REAL";
+      var fontSize = Math.max(14, Math.round(h * 0.052));
+      ctx.save();
+      ctx.translate(Math.round(w * 0.04), h - bar - Math.round(h * 0.05));
+      ctx.rotate(-0.1);
+      ctx.font = "900 " + fontSize + "px -apple-system, BlinkMacSystemFont, sans-serif";
+      var padX = Math.round(fontSize * 0.45);
+      var padY = Math.round(fontSize * 0.3);
+      var tw = ctx.measureText(label).width;
+      var bw = tw + padX * 2;
+      var bh = fontSize + padY * 2;
+      ctx.fillStyle = verified ? "rgba(4, 32, 22, 0.88)" : "rgba(40, 8, 12, 0.88)";
+      ctx.strokeStyle = verified ? "#3dffb0" : "#ff7a86";
+      ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.12));
+      ctx.beginPath();
+      ctx.rect(0, -bh, bw, bh);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = verified ? "#3dffb0" : "#ff7a86";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, padX, -bh / 2);
+      ctx.restore();
+    }
+    return canvas;
+  }
+
+  function frameFromVideo(video, maxEdge) {
+    var vw = (video && video.videoWidth) || 640;
+    var vh = (video && video.videoHeight) || 480;
+    var size = fitThumbnailSize(vw, vh, maxEdge || 640);
+    var canvas = document.createElement("canvas");
+    canvas.width = size.width;
+    canvas.height = size.height;
+    canvas.getContext("2d").drawImage(video, 0, 0, size.width, size.height);
+    return canvas;
+  }
+
+  function drawDemoMachineFrame(opts) {
+    opts = opts || {};
+    var canvas = opts.canvas || document.createElement("canvas");
+    var w = opts.width || canvas.width || 640;
+    var h = opts.height || canvas.height || 480;
+    if (!opts.canvas) {
+      canvas.width = w;
+      canvas.height = h;
+    } else {
+      w = canvas.width;
+      h = canvas.height;
+    }
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#0a0e08";
+    ctx.fillRect(0, 0, w, h);
+    var tagH = Math.max(28, Math.round(h * 0.09));
+    ctx.fillStyle = "#ffc857";
+    ctx.fillRect(0, 0, w, tagH);
+    ctx.fillStyle = "#111";
+    ctx.font = "bold " + Math.max(14, Math.round(tagH * 0.48)) + "px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("DEMO CAMERA", w / 2, tagH / 2);
+    ctx.fillStyle = "#1a2218";
+    ctx.fillRect(Math.round(w * 0.06), Math.round(h * 0.16), Math.round(w * 0.88), Math.round(h * 0.7));
+    ctx.fillStyle = "#0d1a10";
+    ctx.fillRect(Math.round(w * 0.09), Math.round(h * 0.22), Math.round(w * 0.82), Math.round(h * 0.5));
+    var machine = opts.machine || "12";
+    var rank = opts.rank || "A";
+    ctx.fillStyle = "#3ee0b2";
+    ctx.font = "bold " + Math.round(h * 0.045) + "px sans-serif";
+    ctx.fillText("VIDEO POKER  ·  MACHINE " + machine, w / 2, Math.round(h * 0.19));
+    var suits = ["\u2660", "\u2665", "\u2666", "\u2663"];
+    var cardW = Math.round(w * 0.16);
+    var cardH = Math.round(h * 0.32);
+    var gap = Math.round(w * 0.03);
+    var total = cardW * 4 + gap * 3;
+    var x0 = Math.round((w - total) / 2);
+    var y0 = Math.round(h * 0.28);
+    var i;
+    for (i = 0; i < 4; i += 1) {
+      var x = x0 + i * (cardW + gap);
+      ctx.fillStyle = "#f4f6fb";
+      ctx.fillRect(x, y0, cardW, cardH);
+      ctx.fillStyle = (i % 2 === 0) ? "#1a1a1a" : "#c0392b";
+      ctx.font = "bold " + Math.round(cardH * 0.32) + "px sans-serif";
+      ctx.fillText(rank, x + cardW / 2, y0 + cardH * 0.38);
+      ctx.font = Math.round(cardH * 0.28) + "px sans-serif";
+      ctx.fillText(suits[i], x + cardW / 2, y0 + cardH * 0.7);
+    }
+    ctx.fillStyle = "#3ee0b2";
+    ctx.font = "bold " + Math.round(h * 0.05) + "px sans-serif";
+    ctx.fillText("FOUR OF A KIND", w / 2, Math.round(h * 0.7));
+    ctx.fillStyle = "#9aa3b8";
+    ctx.font = Math.round(h * 0.035) + "px sans-serif";
+    ctx.fillText(formatStamp(opts.atMs || Date.now(), opts.tz), w / 2, Math.round(h * 0.78));
+    return canvas;
+  }
+
+  function rotateCanvas180(canvas) {
+    var out = document.createElement("canvas");
+    out.width = canvas.width;
+    out.height = canvas.height;
+    var ctx = out.getContext("2d");
+    ctx.translate(out.width / 2, out.height / 2);
+    ctx.rotate(Math.PI);
+    ctx.drawImage(canvas, -out.width / 2, -out.height / 2);
+    return out;
+  }
+
+  function rotateDataUrl180(dataUrl, cb) {
+    if (!dataUrl) { cb(new Error("no image")); return; }
+    if (typeof Image === "undefined") { cb(new Error("no image api")); return; }
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext("2d").drawImage(img, 0, 0);
+        cb(null, exportJpeg(rotateCanvas180(canvas), 0.7));
+      } catch (err) { cb(err); }
+    };
+    img.onerror = function () { cb(new Error("rotate fail")); };
+    img.src = dataUrl;
+  }
+
+  function captureLiveFrame(opts) {
+    opts = opts || {};
+    var atMs = opts.atMs != null ? opts.atMs : Date.now();
+    var canvas;
+    if (opts.demo || !opts.video) {
+      canvas = drawDemoMachineFrame({
+        rank: opts.rank, machine: opts.previewMachine || "", atMs: atMs, tz: opts.tz, width: 640, height: 480
+      });
+      canvas = rotateCanvas180(canvas);
+    } else {
+      canvas = frameFromVideo(opts.video, opts.maxEdge || 640);
+    }
+    var rotation = 0;
+    if (opts.flip180) {
+      canvas = rotateCanvas180(canvas);
+      rotation = 180;
+    }
+    var raw = exportJpeg(canvas, 0.7);
+    return {
+      dataUrl: raw.dataUrl,
+      rawDataUrl: raw.dataUrl,
+      width: raw.width,
+      height: raw.height,
+      capturedAtMs: atMs,
+      sourceTimeMs: atMs,
+      hash: hashString(raw.dataUrl),
+      demo: !!opts.demo,
+      rotation: rotation
+    };
+  }
+
+  function rewatermark(photo, opts, cb) {
+    if (!photo) { cb(new Error("no photo")); return; }
+    if (!photo.rawDataUrl || typeof Image === "undefined") { cb(null, photo); return; }
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext("2d").drawImage(img, 0, 0);
+        drawWatermark(canvas, opts || {});
+        var out = exportJpeg(canvas, 0.7);
+        photo.dataUrl = out.dataUrl;
+        photo.width = out.width;
+        photo.height = out.height;
+        cb(null, photo);
+      } catch (err) { cb(null, photo); }
+    };
+    img.onerror = function () { cb(null, photo); };
+    img.src = photo.rawDataUrl;
+  }
+
+  function reasonLabel(reason) {
+    if (reason === "rank mismatch") return "Rank mismatch";
+    if (reason === "no machine # found") return "No machine # found";
+    if (reason === "stale timestamp") return "Stale timestamp";
+    if (reason === "duplicate photo") return "Duplicate photo";
+    return reason || "";
+  }
+
+  return {
+    FRESH_MS: FRESH_MS,
+    fitThumbnailSize: fitThumbnailSize,
+    hashString: hashString,
+    parseExifAsciiDate: parseExifAsciiDate,
+    parseJpegExifDate: parseJpegExifDate,
+    sourceTimeMs: sourceTimeMs,
+    isFreshCapture: isFreshCapture,
+    freshnessReason: freshnessReason,
+    compressCanvas: compressCanvas,
+    drawToThumbnail: drawToThumbnail,
+    processCapture: processCapture,
+    compressImageFile: processCapture,
+    formatStamp: formatStamp,
+    exportJpeg: exportJpeg,
+    drawWatermark: drawWatermark,
+    frameFromVideo: frameFromVideo,
+    drawDemoMachineFrame: drawDemoMachineFrame,
+    captureLiveFrame: captureLiveFrame,
+    rotateCanvas180: rotateCanvas180,
+    rotateDataUrl180: rotateDataUrl180,
+    rewatermark: rewatermark,
+    reasonLabel: reasonLabel
+  };
+})();
+/* QUADS_PROOF_END */
+
+
+
+  (function () {
+    "use strict";
+
+    var RANKS = QuadsParser.RANKS;
+    var TZ = "America/Los_Angeles";
+    var DUPLICATE_MS = 10 * 60 * 1000;
+    var DEMO_PIN = "1234";
+    var STORAGE_KEY = "quads-club-tracker-demo-v4";
+
+    function pst(month, day, hour, minute) {
+      minute = minute || 0;
+      return Date.parse("2026-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0") + "T" + String(hour).padStart(2, "0") + ":" + String(minute || 0).padStart(2, "0") + ":00-08:00");
+    }
+    function formatWhen(ms) {
+      return new Intl.DateTimeFormat("en-US", { timeZone: TZ, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(ms));
+    }
+    function formatDay(ms) {
+      return new Intl.DateTimeFormat("en-US", { timeZone: TZ, month: "short", day: "numeric", year: "numeric" }).format(new Date(ms));
+    }
+    function shortDay(ms) { return formatDay(ms).replace(", 2026", ""); }
+    function weekLabel(startMs) { return "Week of " + formatDay(startMs); }
+    function exceptMissing(missing) { return RANKS.filter(function (rank) { return missing.indexOf(rank) < 0; }); }
+
+    var SEED = [
+      { id: "p-alvarez", first: "Alice", last: "Alvarez", ranks: RANKS.slice(), weekRanks: ["A"], extras: { "5": 2, A: 1 } },
+      { id: "p-brooks", first: "Anita", last: "Brooks", ranks: ["2", "5", "K"], weekRanks: ["5"] },
+      { id: "p-cruz", first: "Benny", last: "Cruz", ranks: exceptMissing(["4", "J"]), weekRanks: ["8"] },
+      { id: "p-nguyen", first: "Carla", last: "Nguyen", ranks: ["2", "3", "5", "6", "7", "8", "9", "10", "Q", "A"], weekRanks: ["2", "7"] },
+      { id: "p-walsh", first: "Derek", last: "Walsh", ranks: ["2", "4", "5", "8", "9", "J", "K"], weekRanks: ["9"] },
+      { id: "p-vasquez", first: "Elena", last: "Vasquez", ranks: ["3", "5", "6", "10", "Q", "A"], weekRanks: ["10"] },
+      { id: "p-omalley", first: "Frank", last: "O'Malley", ranks: ["2", "3", "4", "7", "8", "9", "K", "A"], weekRanks: ["A"] },
+      { id: "p-patel", first: "Gina", last: "Patel", ranks: ["2", "3", "4", "5", "6", "8", "10", "J", "Q"], weekRanks: ["J"] },
+      { id: "p-ruiz", first: "Hector", last: "Ruiz", ranks: exceptMissing(["7"]), weekRanks: ["K"] },
+      { id: "p-briggs", first: "Karen", last: "Briggs", ranks: ["2", "5", "7", "9", "Q", "A"], weekRanks: ["Q"] },
+      { id: "p-lang", first: "Leo", last: "Lang", ranks: ["3", "4", "6", "8", "10", "J", "K"], weekRanks: ["10"] },
+      { id: "p-lopez-maria", first: "Maria", last: "Lopez", ranks: ["2", "3", "5", "7", "8", "9", "Q", "A"], weekRanks: ["5", "A"] },
+      { id: "p-lopez-carlos", first: "Carlos", last: "Lopez", ranks: ["2", "5", "8", "J", "K"], weekRanks: ["8"] },
+      { id: "p-lopez-sofia", first: "Sofia", last: "Lopez", ranks: ["5", "9"], weekRanks: ["5"] },
+      { id: "p-thornton", first: "Maya", last: "Thornton", ranks: ["2", "3", "5", "7", "8", "9", "Q", "A"], weekRanks: ["5"] },
+      { id: "p-rossi", first: "Mike", last: "Rossi", ranks: RANKS.slice(), weekRanks: ["5"], extras: { "7": 1, K: 1 } },
+      { id: "p-delgado", first: "Nate", last: "Delgado", ranks: ["7"], weekRanks: ["7"] },
+      { id: "p-quentin", first: "Quinn", last: "Quentin", ranks: ["3", "4", "5", "6", "7", "9", "10", "K", "A"], weekRanks: ["3"] },
+      { id: "p-esposito", first: "Rosa", last: "Esposito", ranks: exceptMissing(["2", "10"]), weekRanks: ["J"] },
+      { id: "p-whitaker", first: "Sam", last: "Whitaker", ranks: ["2", "3", "4", "5", "6", "7", "8", "9", "J", "A"], weekRanks: ["9"] },
+      { id: "p-ortega", first: "Tina", last: "Ortega", ranks: ["3", "8", "9", "Q", "K"], weekRanks: ["K"] },
+      { id: "p-yates", first: "Yolanda", last: "Yates", ranks: exceptMissing(["Q"]), weekRanks: ["9"] }
+    ];
+
+    function makeInitialState() {
+      var weeks = [
+        { id: "w0", label: "Week of Nov 1, 2026", startedAtMs: pst(11, 1, 0), closedAtMs: pst(11, 7, 23, 59) },
+        { id: "w1", label: "Week of Nov 8, 2026", startedAtMs: pst(11, 8, 0), closedAtMs: null }
+      ];
+      var players = SEED.map(function (row) { return { id: row.id, first: row.first, last: row.last }; });
+      var entries = [];
+      var n = 1;
+      var tick = 0;
+      function push(playerId, rank, atMs, weekId) {
+        entries.push({ id: "e-" + n, playerId: playerId, rank: rank, atMs: atMs, note: "", weekId: weekId, machine: "", photo: null, status: "verified", rejectReason: null, detectedRank: rank, suiteApproval: null });
+        n += 1;
+      }
+      SEED.forEach(function (row) {
+        row.ranks.filter(function (rank) { return row.weekRanks.indexOf(rank) < 0; }).forEach(function (rank, index) {
+          push(row.id, rank, pst(11, 1 + ((tick + index) % 7), 10 + ((tick + index) % 12), (tick * 7 + index * 11) % 60), "w0");
+        });
+        row.weekRanks.forEach(function (rank, index) {
+          if (row.ranks.indexOf(rank) >= 0) push(row.id, rank, pst(11, 2 + ((tick + index) % 5), 14, (index * 13) % 60), "w0");
+          push(row.id, rank, pst(11, 8 + ((tick + index) % 5), 11 + ((tick + index * 3) % 10), (tick * 5 + index * 17) % 60), "w1");
+        });
+        var extras = row.extras || {};
+        Object.keys(extras).forEach(function (rank) {
+          var count = extras[rank] || 0;
+          for (var i = 0; i < count; i += 1) {
+            var onThisWeek = row.weekRanks.indexOf(rank) >= 0 && i === count - 1;
+            push(row.id, rank, pst(11, onThisWeek ? 11 : 3 + ((tick + i) % 4), 16, 8 + i * 3), onThisWeek ? "w1" : "w0");
+          }
+        });
+        tick += 1;
+      });
+      return { players: players, entries: entries, weeks: weeks, currentWeekId: "w1", nextPlayer: 30, nextEntry: n, settings: defaultSettings(), photoHashes: [] };
+    }
+
+    function defaultSettings() {
+      return { requireSuiteApproval: false, autoFlip: true };
+    }
+    function wouldCompleteSuite(playerId, rank) {
+      var have = uniqueRanks(state.entries, playerId);
+      return have.length === 12 && have.indexOf(rank) < 0;
+    }
+    function latestHitForRank(playerId, rank, weekId) {
+      var hits = state.entries.filter(function (e) {
+        if (e.playerId !== playerId || e.rank !== rank) return false;
+        if (weekId && e.weekId !== weekId) return false;
+        if (!isVerified(e)) return false;
+        return true;
+      }).sort(function (a, b) { return b.atMs - a.atMs; });
+      return hits[0] || null;
+    }
+    function hasPhoto(entry) { return !!(entry && entry.photo && entry.photo.dataUrl); }
+    function suiteEntryFor(playerId) {
+      var marked = state.entries.filter(function (e) { return e.playerId === playerId && e.suiteApproval; }).sort(function (a, b) { return b.atMs - a.atMs; });
+      return marked[0] || null;
+    }
+    function suiteOfficial(playerId) {
+      if (uniqueRanks(state.entries, playerId).length !== 13) return false;
+      var mark = suiteEntryFor(playerId);
+      if (!mark || !mark.suiteApproval) return true;
+      return mark.suiteApproval === "approved";
+    }
+
+    function isVerified(entry) { return !!(entry && entry.status === "verified"); }
+    function uniqueRanks(entries, playerId, weekId) {
+      var found = [];
+      entries.forEach(function (entry) {
+        if (entry.playerId !== playerId) return;
+        if (weekId && entry.weekId !== weekId) return;
+        if (!isVerified(entry)) return;
+        if (found.indexOf(entry.rank) < 0) found.push(entry.rank);
+      });
+      return found;
+    }
+    function missingRanks(entries, playerId) {
+      var have = uniqueRanks(entries, playerId);
+      return RANKS.filter(function (rank) { return have.indexOf(rank) < 0; });
+    }
+    function rankStats(entries, playerId) {
+      var stats = {};
+      RANKS.forEach(function (rank) { stats[rank] = { count: 0, lastMs: 0 }; });
+      entries.forEach(function (entry) {
+        if (entry.playerId !== playerId) return;
+        if (!isVerified(entry)) return;
+        stats[entry.rank].count += 1;
+        if (entry.atMs > stats[entry.rank].lastMs) stats[entry.rank].lastMs = entry.atMs;
+      });
+      return stats;
+    }
+    function lastHitMs(entries, playerId) {
+      var last = null;
+      entries.forEach(function (entry) {
+        if (entry.playerId !== playerId) return;
+        if (!isVerified(entry)) return;
+        if (last === null || entry.atMs > last) last = entry.atMs;
+      });
+      return last;
+    }
+    function isDuplicate(entries, playerId, rank, atMs, skipId) {
+      return entries.some(function (entry) {
+        if (skipId && entry.id === skipId) return false;
+        return entry.playerId === playerId && entry.rank === rank && Math.abs(atMs - entry.atMs) <= DUPLICATE_MS;
+      });
+    }
+    function findPlayer(id) {
+      for (var i = 0; i < state.players.length; i += 1) {
+        if (state.players[i].id === id) return state.players[i];
+      }
+      return null;
+    }
+    function sortPlayers(list) {
+      return list.slice().sort(function (a, b) {
+        var al = (a.last || a.first).toLowerCase();
+        var bl = (b.last || b.first).toLowerCase();
+        if (al !== bl) return al < bl ? -1 : 1;
+        return a.first.toLowerCase() < b.first.toLowerCase() ? -1 : (a.first === b.first ? 0 : 1);
+      });
+    }
+    function validState(data) {
+      if (!data || !Array.isArray(data.players) || !Array.isArray(data.entries) || !Array.isArray(data.weeks)) return false;
+      if (typeof data.currentWeekId !== "string" || typeof data.nextPlayer !== "number" || typeof data.nextEntry !== "number") return false;
+      var weeks = {};
+      data.weeks.forEach(function (w) { if (w && w.id) weeks[w.id] = true; });
+      return !!weeks[data.currentWeekId] && data.players.every(function (p) { return p && p.id && typeof p.first === "string" && typeof p.last === "string"; });
+    }
+    function normalizeState(data) {
+      var s = defaultSettings();
+      data.settings = data.settings || {};
+      delete data.settings.requirePhoto;
+      delete data.settings.aiCheck;
+      if (typeof data.settings.requireSuiteApproval !== "boolean") data.settings.requireSuiteApproval = s.requireSuiteApproval;
+      if (typeof data.settings.autoFlip !== "boolean") data.settings.autoFlip = s.autoFlip;
+      if (!Array.isArray(data.photoHashes)) data.photoHashes = [];
+      data.entries.forEach(function (e) {
+        if (typeof e.machine !== "string") e.machine = e.machine ? String(e.machine) : "";
+        if (!e.photo) e.photo = null;
+        if (!e.status) e.status = e.photo || e.aiStatus === "verified" ? "verified" : "verified";
+        if (!e.rejectReason) e.rejectReason = null;
+        if (!e.suiteApproval) e.suiteApproval = null;
+        if (e.photo && e.photo.hash && data.photoHashes.indexOf(e.photo.hash) < 0) data.photoHashes.push(e.photo.hash);
+      });
+      return data;
+    }
+    function loadState() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        var data = JSON.parse(raw);
+        return validState(data) ? normalizeState(data) : null;
+      } catch (err) { return null; }
+    }
+    var storageOk = true;
+    function saveState() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); storageOk = true; }
+      catch (err) { storageOk = false; }
+    }
+
+    var state = loadState() || makeInitialState();
+    var speechSupported = typeof window !== "undefined" && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    var recognition = null;
+    var ui = {
+      view: "log", query: "", typed: "", listening: false, interim: "", heard: "", speechError: "",
+      playerId: null, sortKey: "ranks", sortDir: "desc", viewWeekId: state.currentWeekId,
+      pendingClose: false, sheet: null, toast: null,
+      managerUnlocked: false
+    };
+    var cameraStream = null;
+    var scanTimer = null;
+    var successTimer = null;
+    var SUCCESS_MS = 10000;
+    var demoClockTimer = null;
+    var toastTimer = null;
+    function showToast(text) {
+      ui.toast = text;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { ui.toast = null; render(); }, 1800);
+      render();
+    }
+    function initials(player) {
+      return ((player.first || "").charAt(0) + (player.last || "").charAt(0)).toUpperCase() || "?";
+    }
+    function escapeHtml(value) {
+      return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function applyParse(parsed) {
+      if (parsed.type === "unrecognized") { ui.sheet = { kind: "unrecognized", raw: parsed.raw }; render(); return; }
+      if (parsed.type === "undo") {
+        var last = state.entries.slice().sort(function (a, b) { return b.atMs - a.atMs; })[0];
+        if (!last) { showToast("Nothing to undo"); return; }
+        ui.sheet = { kind: "undo", entry: last, player: findPlayer(last.playerId) };
+        render();
+        return;
+      }
+      if (parsed.type === "needs") {
+        if (parsed.matchMode === "picker") ui.sheet = { kind: "picker", intent: "needs", matches: parsed.matches, nameQuery: parsed.nameQuery };
+        else if (parsed.matchMode === "single") ui.sheet = { kind: "needs", player: parsed.matches[0] };
+        else ui.sheet = { kind: "unknown-needs", nameQuery: parsed.nameQuery };
+        render();
+        return;
+      }
+      if (parsed.matchMode === "needsPlayer") { ui.sheet = { kind: "needs-player", rank: parsed.rank }; render(); return; }
+      if (parsed.matchMode === "picker") { ui.sheet = { kind: "picker", intent: "log", matches: parsed.matches, rank: parsed.rank, nameQuery: parsed.nameQuery }; render(); return; }
+      if (parsed.matchMode === "single") { openConfirm(parsed.matches[0], parsed.rank, false); return; }
+      ui.sheet = { kind: "unknown", nameQuery: parsed.nameQuery, rank: parsed.rank };
+      render();
+    }
+    function collectedHashes() {
+      var hashes = (state.photoHashes || []).slice();
+      state.entries.forEach(function (e) {
+        if (e.photo && e.photo.hash && hashes.indexOf(e.photo.hash) < 0) hashes.push(e.photo.hash);
+      });
+      return hashes;
+    }
+    function rememberHash(hash) {
+      if (!hash) return;
+      if (!state.photoHashes) state.photoHashes = [];
+      if (state.photoHashes.indexOf(hash) < 0) state.photoHashes.push(hash);
+    }
+    function stopCamera() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(function (track) { try { track.stop(); } catch (err) {} });
+        cameraStream = null;
+      }
+      if (demoClockTimer) { clearInterval(demoClockTimer); demoClockTimer = null; }
+    }
+    function dismissSheet() {
+      stopCamera();
+      if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
+      if (successTimer) { clearTimeout(successTimer); successTimer = null; }
+      if (successTimer) { clearTimeout(successTimer); successTimer = null; }
+      ui.sheet = null;
+    }
+    function resetToReady() {
+      dismissSheet();
+      ui.heard = "";
+      ui.typed = "";
+      ui.interim = "";
+      ui.speechError = "";
+      ui.playerId = null;
+      ui.view = "log";
+      render();
+    }
+    function beginSuccess() {
+      if (!ui.sheet) return;
+      ui.sheet.kind = "success";
+      ui.sheet.successEndsAt = Date.now() + SUCCESS_MS;
+      ui.view = "log";
+      render();
+      if (successTimer) clearTimeout(successTimer);
+      successTimer = setTimeout(function () {
+        successTimer = null;
+        if (ui.sheet && ui.sheet.kind === "success") resetToReady();
+      }, SUCCESS_MS);
+    }
+    function retakeCapture() {
+      var sheet = ui.sheet;
+      if (!sheet) return;
+      stopCamera();
+      if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
+      ui.sheet = {
+        kind: "camera",
+        player: sheet.player,
+        rank: sheet.rank,
+        isNew: sheet.isNew,
+        dup: sheet.dup,
+        completesSuite: wouldCompleteSuite(sheet.player.id, sheet.rank),
+        okAtMs: Date.now(),
+        demoCamera: false,
+        cameraStarting: true,
+        demoMachine: sheet.demoMachine || "12",
+        demoForceFail: false,
+        photo: null,
+        scan: null,
+        savedEntry: null
+      };
+      render();
+      beginCamera();
+    }
+    function openConfirm(player, rank, isNew) {
+      ui.sheet = {
+        kind: "confirm",
+        player: player,
+        rank: rank,
+        isNew: !!isNew,
+        dup: isDuplicate(state.entries, player.id, rank, Date.now()),
+        photo: null,
+        completesSuite: wouldCompleteSuite(player.id, rank),
+        okAtMs: null,
+        scan: null
+      };
+      render();
+    }
+    function openCameraFromOk() {
+      var sheet = ui.sheet;
+      if (!sheet || sheet.kind !== "confirm") return;
+      var seed = (QuadsParser.displayName(sheet.player) + sheet.rank).length;
+      ui.sheet = {
+        kind: "camera",
+        player: sheet.player,
+        rank: sheet.rank,
+        isNew: sheet.isNew,
+        dup: sheet.dup,
+        completesSuite: sheet.completesSuite,
+        okAtMs: Date.now(),
+        demoCamera: false,
+        cameraStarting: true,
+        demoMachine: String(4 + (seed * 7) % 24),
+        photo: null,
+        scan: null,
+        savedEntry: null
+      };
+      render();
+      beginCamera();
+    }
+    function beginCamera() {
+      stopCamera();
+      if (!ui.sheet || ui.sheet.kind !== "camera") return;
+      var md = typeof navigator !== "undefined" ? navigator.mediaDevices : null;
+      if (!md || !md.getUserMedia) {
+        ui.sheet.demoCamera = true;
+        ui.sheet.cameraStarting = false;
+        render();
+        return;
+      }
+      md.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false }).then(function (stream) {
+        if (!ui.sheet || ui.sheet.kind !== "camera") {
+          stream.getTracks().forEach(function (track) { try { track.stop(); } catch (err) {} });
+          return;
+        }
+        cameraStream = stream;
+        ui.sheet.demoCamera = false;
+        ui.sheet.cameraStarting = false;
+        render();
+      }).catch(function () {
+        if (!ui.sheet || ui.sheet.kind !== "camera") return;
+        ui.sheet.demoCamera = true;
+        ui.sheet.cameraStarting = false;
+        render();
+      });
+    }
+    function afterRenderCamera() {
+      if (!ui.sheet || ui.sheet.kind !== "camera") return;
+      if (ui.sheet.demoCamera) {
+        var canvas = document.getElementById("demo-view");
+        if (canvas) {
+          canvas.width = 640;
+          canvas.height = 480;
+          QuadsProof.drawDemoMachineFrame({
+            canvas: canvas, rank: ui.sheet.rank, machine: ui.sheet.demoMachine, atMs: Date.now(), tz: TZ
+          });
+        }
+        if (!demoClockTimer) {
+          demoClockTimer = setInterval(function () {
+            if (!ui.sheet || ui.sheet.kind !== "camera" || !ui.sheet.demoCamera) {
+              if (demoClockTimer) { clearInterval(demoClockTimer); demoClockTimer = null; }
+              return;
+            }
+            var live = document.getElementById("demo-view");
+            if (!live) return;
+            QuadsProof.drawDemoMachineFrame({
+              canvas: live, rank: ui.sheet.rank, machine: ui.sheet.demoMachine, atMs: Date.now(), tz: TZ
+            });
+          }, 1000);
+        }
+        return;
+      }
+      var video = document.getElementById("live-video");
+      if (video && cameraStream) {
+        video.srcObject = cameraStream;
+        var play = video.play();
+        if (play && play.catch) play.catch(function () {});
+      }
+    }
+    function captureLiveFrame() {
+      var sheet = ui.sheet;
+      if (!sheet || sheet.kind !== "camera") return;
+      var capturedAtMs = Date.now();
+      var video = document.getElementById("live-video");
+      var useDemo = !!sheet.demoCamera || !video || !video.videoWidth;
+      if (useDemo && !sheet.demoCamera && cameraStream) {
+        showToast("Camera is still starting");
+        return;
+      }
+      var photo;
+      try {
+        photo = QuadsProof.captureLiveFrame({
+          video: useDemo ? null : video,
+          demo: useDemo,
+          rank: sheet.rank,
+          previewMachine: sheet.demoMachine || "",
+          machine: "",
+          atMs: capturedAtMs,
+          tz: TZ,
+          maxEdge: 640,
+          flip180: !!state.settings.autoFlip
+        });
+      } catch (err) {
+        showToast("Couldn’t capture that frame");
+        return;
+      }
+      var reason = QuadsProof.freshnessReason(capturedAtMs, Date.now(), sheet.okAtMs, collectedHashes(), photo.hash);
+      stopCamera();
+      sheet.photo = photo;
+      if (reason) {
+        sheet.kind = "scan-result";
+        sheet.scan = {
+          detectedRank: "",
+          machine: "",
+          capturedAtMs: capturedAtMs,
+          status: "rejected",
+          rejectReason: reason,
+          decided: true,
+          showFailReasons: false
+        };
+        stampPhoto("rejected", function () {
+          commitEntry("rejected", reason, sheet.scan);
+          render();
+        });
+        return;
+      }
+      startScan();
+    }
+    function startScan() {
+      ui.sheet.kind = "scanning";
+      render();
+      scanTimer = setTimeout(function () {
+        scanTimer = null;
+        if (!ui.sheet || ui.sheet.kind !== "scanning") return;
+        var machine = ui.sheet.demoMachine || "12";
+        ui.sheet.scan = {
+          detectedRank: ui.sheet.rank,
+          machine: machine,
+          capturedAtMs: ui.sheet.photo.capturedAtMs,
+          status: "pending",
+          rejectReason: null,
+          decided: false,
+          showFailReasons: false
+        };
+        if (ui.sheet.demoForceFail) {
+          ui.sheet.kind = "scan-result";
+          ui.sheet.scan.showFailReasons = true;
+          render();
+          return;
+        }
+        finishScanPass();
+      }, 1200);
+    }
+    function stampPhoto(mark, cb) {
+      var sheet = ui.sheet;
+      if (!sheet || !sheet.photo) { if (cb) cb(); return; }
+      QuadsProof.rewatermark(sheet.photo, {
+        atMs: sheet.photo.capturedAtMs,
+        machine: (sheet.scan && sheet.scan.machine) || "",
+        demo: !!sheet.photo.demo,
+        tz: TZ,
+        mark: mark
+      }, function (err, photo) {
+        if (photo) sheet.photo = photo;
+        if (cb) cb();
+      });
+    }
+    function rotateReview() {
+      var sheet = ui.sheet;
+      if (!sheet || !sheet.photo || !sheet.photo.rawDataUrl) return;
+      QuadsProof.rotateDataUrl180(sheet.photo.rawDataUrl, function (err, out) {
+        if (err || !out || !ui.sheet || ui.sheet !== sheet) return;
+        sheet.photo.rawDataUrl = out.dataUrl;
+        sheet.photo.dataUrl = out.dataUrl;
+        sheet.photo.width = out.width;
+        sheet.photo.height = out.height;
+        sheet.photo.hash = QuadsProof.hashString(out.dataUrl);
+        sheet.photo.rotation = ((sheet.photo.rotation || 0) + 180) % 360;
+        var needsStamp = (sheet.kind === "success") || (sheet.scan && sheet.scan.decided);
+        if (!needsStamp) { render(); return; }
+        var mark = (sheet.scan && sheet.scan.status === "rejected") ? "rejected" : "verified";
+        stampPhoto(mark, function () {
+          if (sheet.savedEntry && sheet.savedEntry.photo) {
+            sheet.savedEntry.photo.dataUrl = sheet.photo.dataUrl;
+            sheet.savedEntry.photo.width = sheet.photo.width;
+            sheet.savedEntry.photo.height = sheet.photo.height;
+            sheet.savedEntry.photo.hash = sheet.photo.hash;
+          }
+          render();
+        });
+      });
+    }
+    function finishScanPass() {
+      var sheet = ui.sheet;
+      if (!sheet || !sheet.scan || sheet.scan.decided) return;
+      sheet.scan.status = "verified";
+      sheet.scan.decided = true;
+      sheet.scan.showFailReasons = false;
+      stampPhoto("verified", function () {
+        if (!ui.sheet || ui.sheet !== sheet) return;
+        commitEntry("verified", null, sheet.scan);
+        beginSuccess();
+      });
+    }
+    function showFailReasons() {
+      if (!ui.sheet || !ui.sheet.scan || ui.sheet.scan.decided) return;
+      ui.sheet.scan.showFailReasons = true;
+      render();
+    }
+    function finishScanFail(reason) {
+      var sheet = ui.sheet;
+      if (!sheet || !sheet.scan || sheet.scan.decided) return;
+      if (reason === "rank mismatch") {
+        var alt = sheet.rank === "A" ? "K" : "A";
+        sheet.scan.detectedRank = alt;
+      }
+      if (reason === "no machine # found") sheet.scan.machine = "";
+      sheet.scan.status = "rejected";
+      sheet.scan.rejectReason = reason;
+      sheet.scan.decided = true;
+      stampPhoto("rejected", function () {
+        commitEntry("rejected", reason, sheet.scan);
+        render();
+      });
+    }
+    function closeScanResult() {
+      var sheet = ui.sheet;
+      var verified = sheet && sheet.scan && sheet.scan.status === "verified";
+      var completes = sheet && sheet.savedEntry && sheet.savedEntry.suiteApproval === "pending";
+      ui.heard = "";
+      ui.typed = "";
+      dismissSheet();
+      if (verified) showToast(completes ? "4Real \u2713 Verified — awaiting suite approval" : "4Real \u2713 Verified");
+      else showToast("Not 4Real");
+    }
+    function commitEntry(status, reason, scan) {
+      var sheet = ui.sheet;
+      if (!sheet) return;
+      rememberHash(sheet.photo && sheet.photo.hash);
+      var player = sheet.player;
+      if (sheet.isNew && !findPlayer(player.id)) {
+        if (status !== "verified") {
+          sheet.savedEntry = null;
+          return;
+        }
+        player = { id: "p-new-" + state.nextPlayer, first: player.first || "Player", last: player.last || "" };
+        state.players.push(player);
+        state.nextPlayer += 1;
+        sheet.player = player;
+      }
+      var completes = status === "verified" && wouldCompleteSuite(player.id, sheet.rank);
+      var capturedAtMs = (sheet.photo && sheet.photo.capturedAtMs) || Date.now();
+      var photo = null;
+      if (sheet.photo && sheet.photo.dataUrl) {
+        photo = {
+          dataUrl: sheet.photo.dataUrl,
+          width: sheet.photo.width,
+          height: sheet.photo.height,
+          capturedAtMs: capturedAtMs,
+          hash: sheet.photo.hash,
+          demo: !!sheet.photo.demo
+        };
+      }
+      var entry = {
+        id: "e-" + state.nextEntry,
+        playerId: player.id,
+        rank: sheet.rank,
+        atMs: capturedAtMs,
+        note: "",
+        weekId: state.currentWeekId,
+        machine: (scan && scan.machine) || "",
+        detectedRank: (scan && scan.detectedRank) || "",
+        photo: photo,
+        status: status,
+        rejectReason: reason || null,
+        suiteApproval: completes && state.settings.requireSuiteApproval ? "pending" : null
+      };
+      state.entries.push(entry);
+      state.nextEntry += 1;
+      sheet.savedEntry = entry;
+    }
+    function handlePhrase(text) {
+      ui.heard = text;
+      applyParse(QuadsParser.parsePhrase(text, state.players));
+    }
+
+    function speechEngine() {
+      var Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Ctor) return null;
+      if (recognition) return recognition;
+      recognition = new Ctor();
+      recognition.lang = "en-US";
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 3;
+      recognition.onstart = function () { ui.listening = true; ui.speechError = ""; ui.interim = ""; render(); };
+      recognition.onerror = function (event) {
+        ui.listening = false;
+        if (event.error === "not-allowed") ui.speechError = "Microphone access was blocked. Type a phrase instead.";
+        else if (event.error !== "aborted" && event.error !== "no-speech") ui.speechError = "Couldn’t hear that. Try again, or type it.";
+        render();
+      };
+      recognition.onend = function () { ui.listening = false; render(); };
+      recognition.onresult = function (event) {
+        var interim = "";
+        var finals = [];
+        for (var i = event.resultIndex; i < event.results.length; i += 1) {
+          var res = event.results[i];
+          if (res.isFinal) { for (var a = 0; a < res.length; a += 1) finals.push(res[a].transcript); }
+          else interim += res[0].transcript;
+        }
+        ui.interim = interim;
+        if (finals.length) {
+          var used = null;
+          for (var f = 0; f < finals.length; f += 1) {
+            if (QuadsParser.parsePhrase(finals[f], state.players).type !== "unrecognized") { used = finals[f]; break; }
+          }
+          handlePhrase(used || finals[0]);
+        } else render();
+      };
+      return recognition;
+    }
+    function toggleMic() {
+      if (!speechSupported) return;
+      var rec = speechEngine();
+      if (!rec) return;
+      if (ui.listening) { try { rec.stop(); } catch (err) {} return; }
+      try { rec.start(); } catch (err) { ui.speechError = "Couldn’t start the mic. Type a phrase instead."; render(); }
+    }
+    function currentWeek() {
+      for (var i = 0; i < state.weeks.length; i += 1) if (state.weeks[i].id === state.currentWeekId) return state.weeks[i];
+      return null;
+    }
+
+    function renderRing(count) {
+      var r = 62;
+      var c = 2 * Math.PI * r;
+      var off = c * (1 - count / 13);
+      return '<div class="ring-wrap"><svg viewBox="0 0 148 148" aria-hidden="true"><circle cx="74" cy="74" r="' + r + '" fill="none" stroke="#2a3142" stroke-width="12"/><circle cx="74" cy="74" r="' + r + '" fill="none" stroke="#3ee0b2" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + c.toFixed(2) + '" stroke-dashoffset="' + off.toFixed(2) + '"/></svg><div class="ring-label"><b>' + count + "/13</b><span>ranks</span></div></div>";
+    }
+    function renderGrid(player, interactive) {
+      var stats = rankStats(state.entries, player.id);
+      var html = '<div class="grid">';
+      RANKS.forEach(function (rank) {
+        var st = stats[rank];
+        var filled = st.count > 0;
+        var tag = interactive ? "button" : "div";
+        var attrs = interactive ? ' type="button" data-act="detail-rank" data-rank="' + rank + '"' : "";
+        html += "<" + tag + ' class="rank' + (filled ? " filled" : "") + '"' + attrs + ">" + escapeHtml(rank);
+        if (filled) html += "<small>" + st.count + "x · " + escapeHtml(shortDay(st.lastMs)) + "</small>";
+        html += "</" + tag + ">";
+      });
+      return html + "</div>";
+    }
+    function renderLog() {
+      var html = '<section class="mic-stage">';
+      html += '<div class="mic-hint">Say the last name and the rank</div>';
+      html += '<div class="mic-ex">Try <strong>Lopez quad 5</strong> or <strong>Alvarez quad fives</strong></div>';
+      html += '<button type="button" class="mic' + (ui.listening ? " listening" : "") + '" data-act="mic" ' + (speechSupported ? "" : "disabled ") + 'aria-label="Start voice logging">';
+      html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4M8 21h8"/></svg></button>';
+      html += '<div class="listen-label' + (ui.listening ? " live" : "") + '">' + (ui.listening ? "Listening… tap to stop" : (speechSupported ? "Tap to talk" : "Voice isn’t available here")) + "</div>";
+      html += '<div class="transcript">' + escapeHtml(ui.interim || ui.heard || "") + "</div>";
+      if (!speechSupported) html += '<div class="note warn">Voice isn’t available in this browser. Type a phrase below — it uses the same parser. Voice works in iOS Safari and Chrome.</div>';
+      else if (ui.speechError) html += '<div class="note warn">' + escapeHtml(ui.speechError) + "</div>";
+      else html += '<div class="note">If several people share that last name, you’ll pick the full name next. Nothing is saved until you hit OK. Works in iOS Safari and Chrome.</div>';
+      html += '<div class="typebox"><label for="typed">Or type the same kind of phrase</label><div class="type-row">';
+      html += '<input id="typed" data-bind="typed" placeholder="Lopez quad 5" value="' + escapeHtml(ui.typed) + '">';
+      html += '<button type="button" class="go" data-act="type-go">Go</button></div><div class="chips">';
+      ["Lopez quad 5", "Lopez quad fives", "Alvarez quad aces", "four aces for Alice", "quad bullets", "what does Hector need", "undo last"].forEach(function (phrase) {
+        html += '<button type="button" class="chip" data-act="chip" data-phrase="' + escapeHtml(phrase) + '">' + escapeHtml(phrase) + "</button>";
+      });
+      return html + "</div></div></section>";
+    }
+    function renderPlayers() {
+      var q = ui.query.trim().toLowerCase();
+      var list = sortPlayers(state.players).filter(function (p) {
+        return !q || QuadsParser.displayName(p).toLowerCase().indexOf(q) >= 0;
+      });
+      if (ui.playerId) {
+        var player = findPlayer(ui.playerId);
+        if (!player) return "<p>Player not found.</p>";
+        var missing = missingRanks(state.entries, player.id);
+        var html = '<button type="button" class="back" data-act="back-list">← All players</button>';
+        html += '<div class="detail-head">' + renderRing(13 - missing.length) + "<div><h2>" + escapeHtml(QuadsParser.displayName(player)) + "</h2>";
+        html += '<p class="need">' + (missing.length ? "Needs " + escapeHtml(missing.join(", ")) + " to finish." : "Full suite.") + " DEMO DATA.</p></div></div>";
+        html += '<p class="need">Tap a rank to log it — you’ll still confirm.</p>';
+        return html + renderGrid(player, true);
+      }
+      var out = '<input class="search" id="playerSearch" data-bind="query" placeholder="Search players" value="' + escapeHtml(ui.query) + '">';
+      list.forEach(function (p) {
+        var count = uniqueRanks(state.entries, p.id).length;
+        var last = lastHitMs(state.entries, p.id);
+        out += '<button type="button" class="player-row" data-act="open-player" data-id="' + escapeHtml(p.id) + '">';
+        out += '<div class="avatar">' + escapeHtml(initials(p)) + '</div><div class="who"><div class="name">' + escapeHtml(QuadsParser.displayName(p)) + '</div><div class="meta">' + (last ? "Last " + escapeHtml(formatWhen(last)) : "No hands yet") + " · DEMO DATA</div></div>";
+        out += '<div class="pct">' + count + "/13</div></button>";
+      });
+      if (!list.length) out += '<p class="need">No players match that search.</p>';
+      return out;
+    }
+    function renderDrawing() {
+      var rows = state.players.map(function (player) {
+        return {
+          player: player,
+          unique: uniqueRanks(state.entries, player.id),
+          missing: missingRanks(state.entries, player.id),
+          weekUnique: uniqueRanks(state.entries, player.id, ui.viewWeekId),
+          hits: state.entries.filter(function (e) { return e.playerId === player.id && isVerified(e); }).length,
+          last: lastHitMs(state.entries, player.id)
+        };
+      });
+      var suite = rows.filter(function (r) { return suiteOfficial(r.player.id); });
+      var pendingSuite = rows.filter(function (r) {
+        var mark = suiteEntryFor(r.player.id);
+        return r.unique.length === 13 && mark && (mark.suiteApproval === "pending" || mark.suiteApproval === "held");
+      });
+      var almost = rows.filter(function (r) { return r.missing.length === 1 || r.missing.length === 2; }).sort(function (a, b) { return a.missing.length - b.missing.length; });
+      var plus9 = rows.filter(function (r) { return r.unique.length >= 9; }).length;
+      var plus5 = rows.filter(function (r) { return r.unique.length >= 5; }).length;
+      var sorted = rows.slice().sort(function (a, b) {
+        var cmp = 0;
+        if (ui.sortKey === "ranks") cmp = a.unique.length - b.unique.length;
+        else if (ui.sortKey === "name") cmp = QuadsParser.displayName(a.player).localeCompare(QuadsParser.displayName(b.player));
+        else if (ui.sortKey === "last") cmp = (a.last || 0) - (b.last || 0);
+        else if (ui.sortKey === "week") cmp = a.weekUnique.length - b.weekUnique.length;
+        else cmp = a.hits - b.hits;
+        return ui.sortDir === "asc" ? cmp : -cmp;
+      });
+      var html = '<h2 class="board-title">Quadzilla Leaderboard</h2>';
+      html += '<div class="metrics"><div class="metric"><div class="n">' + suite.length + '</div><div class="l">Full suite</div></div>';
+      html += '<div class="metric"><div class="n">' + almost.length + '</div><div class="l">1–2 away</div></div>';
+      html += '<div class="metric"><div class="n">' + plus9 + '</div><div class="l">9+ ranks</div></div>';
+      html += '<div class="metric"><div class="n">' + plus5 + '</div><div class="l">5+ ranks</div></div></div><div class="sorts">';
+      state.weeks.forEach(function (week) {
+        html += '<button type="button" class="quiet" data-act="week" data-id="' + escapeHtml(week.id) + '">' + escapeHtml(week.label) + (week.closedAtMs ? " · closed" : " · open") + "</button>";
+      });
+      html += '</div><div class="card"><h2>Completed the suite</h2>';
+      if (!suite.length) html += '<p class="need">Nobody has all 13 ranks yet.</p>';
+      else {
+        html += "<ul>";
+        suite.forEach(function (row) {
+          var proofs = row.unique.filter(function (rank) { return hasPhoto(latestHitForRank(row.player.id, rank)); }).length;
+          html += "<li>" + escapeHtml(QuadsParser.displayName(row.player)) + " — 13/13, last " + escapeHtml(row.last ? formatWhen(row.last) : "—") + ", " + proofs + " of 13 ranks have photo proof. DEMO DATA.</li>";
+        });
+        html += "</ul>";
+      }
+      html += '</div><div class="card"><h2>One or two ranks away</h2>';
+      if (!almost.length) html += '<p class="need">Nobody is one or two ranks short.</p>';
+      else {
+        html += "<ul>";
+        almost.forEach(function (row) { html += "<li>" + escapeHtml(QuadsParser.displayName(row.player)) + " — " + row.unique.length + "/13, needs " + escapeHtml(row.missing.join(", ")) + ". DEMO DATA.</li>"; });
+        html += "</ul>";
+      }
+      html += '</div><div class="card"><h2>Leaderboard</h2><div class="sorts">';
+      [["ranks", "Ranks"], ["name", "Name"], ["last", "Last hit"], ["week", "New this week"], ["hits", "Hands"]].forEach(function (pair) {
+        var label = pair[1] + (ui.sortKey === pair[0] ? (ui.sortDir === "asc" ? " ↑" : " ↓") : "");
+        html += '<button type="button" class="quiet" data-act="sort" data-key="' + pair[0] + '">' + label + "</button>";
+      });
+      html += '</div><table><thead><tr><th>Player</th><th>Ranks</th><th>Missing</th><th>New this week</th><th>Hands</th><th>Last hit</th></tr></thead><tbody>';
+      sorted.forEach(function (row) {
+        html += "<tr><td>" + escapeHtml(QuadsParser.displayName(row.player)) + "</td><td>" + row.unique.length + "/13</td><td>" + escapeHtml(row.missing.length ? row.missing.join(", ") : "Complete") + "</td><td>" + row.weekUnique.length + "</td><td>" + row.hits + "</td><td>" + escapeHtml(row.last ? formatWhen(row.last) : "—") + "</td></tr>";
+      });
+      html += '</tbody></table></div>';
+      if (pendingSuite.length) {
+        html += '<div class="card"><h2>Awaiting suite approval</h2><ul>';
+        pendingSuite.forEach(function (row) {
+          var mark = suiteEntryFor(row.player.id);
+          html += "<li>" + escapeHtml(QuadsParser.displayName(row.player)) + " — 13/13, " + escapeHtml(mark.suiteApproval) + ". DEMO DATA.</li>";
+        });
+        html += "</ul></div>";
+      }
+      html += '<div class="card"><h2>Proof for this week</h2><p class="need">Only 4Real hits count for the Quadzilla Leaderboard. Sample history is pre-verified DEMO DATA. New hands need a live camera capture that passes the AI scan.</p>';
+      var weekHits = [];
+      state.players.forEach(function (player) {
+        uniqueRanks(state.entries, player.id, ui.viewWeekId).forEach(function (rank) {
+          weekHits.push({ player: player, entry: latestHitForRank(player.id, rank, ui.viewWeekId), rank: rank });
+        });
+      });
+      weekHits.sort(function (a, b) { return QuadsParser.displayName(a.player).localeCompare(QuadsParser.displayName(b.player)); });
+      if (!weekHits.length) html += '<p class="need">No new unique ranks in this week.</p>';
+      weekHits.forEach(function (hit) {
+        var entry = hit.entry;
+        html += '<div class="proof-row">';
+        if (entry && hasPhoto(entry)) html += '<img class="proof-thumb" alt="" src="' + entry.photo.dataUrl + '" data-act="view-photo" data-id="' + escapeHtml(entry.id) + '">';
+        else html += '<div class="proof-thumb" style="display:grid;place-items:center;color:var(--warn);font-size:11px;font-weight:700">—</div>';
+        html += '<div style="flex:1"><div class="title">' + escapeHtml(QuadsParser.displayName(hit.player)) + " — " + escapeHtml(hit.rank) + "</div>";
+        html += '<div class="meta">' + (entry ? escapeHtml(formatWhen(entry.atMs)) : "") + (entry && entry.machine ? " · Machine " + escapeHtml(entry.machine) : "") + "</div>";
+        html += entry ? proofBadges(entry) : '<span class="stamp no"><span class="stamp-mark">Not 4Real</span></span>';
+        html += "</div></div>";
+      });
+      html += '</div><div class="card"><h2>Close week</h2><p class="need">Archives this week’s new-rank counts and starts a fresh week. Lifetime ranks stay put. A person still runs the drawing. This is a manager action and uses the demo PIN.</p>';
+      var cur = currentWeek();
+      if (cur && cur.closedAtMs) html += '<p class="need">This week is already closed. Reset demo data in Settings to try again.</p>';
+      else if (ui.pendingClose) html += '<button type="button" class="primary" data-act="close-week">Yes, close week</button><button type="button" class="quiet" style="margin-top:10px;width:100%" data-act="cancel-close">Cancel</button>';
+      else html += '<button type="button" class="primary" data-act="ask-close">Close week / start new week</button>';
+      return html + "</div>";
+    }
+    function stampDetails(entry) {
+      var when = formatWhen((entry.photo && (entry.photo.capturedAtMs || entry.photo.takenAtMs)) || entry.atMs);
+      var machine = entry.machine ? "Machine " + entry.machine : "";
+      return [machine, when].filter(Boolean).join(" · ");
+    }
+    function proofBadges(entry) {
+      var html = "";
+      if (isVerified(entry)) {
+        var yes = '<span class="stamp-mark">4Real \u2713 Verified</span><span class="stamp-meta">' + escapeHtml(stampDetails(entry)) + "</span>";
+        if (hasPhoto(entry)) html += '<button type="button" class="stamp yes" data-act="view-photo" data-id="' + escapeHtml(entry.id) + '">' + yes + "</button>";
+        else html += '<span class="stamp yes">' + yes + "</span>";
+      } else if (entry && entry.status === "rejected") {
+        html += '<span class="stamp no"><span class="stamp-mark">Not 4Real</span><span class="stamp-meta">' + escapeHtml(QuadsProof.reasonLabel(entry.rejectReason) || stampDetails(entry)) + "</span></span>";
+      }
+      if (entry.suiteApproval === "pending") html += '<span class="suite-badge">Suite: needs approval</span>';
+      else if (entry.suiteApproval === "approved") html += '<span class="suite-badge ok">Suite approved</span>';
+      else if (entry.suiteApproval === "held") html += '<span class="suite-badge">Suite held</span>';
+      return html;
+    }
+    function renderActivity() {
+      var recent = state.entries.slice().sort(function (a, b) { return b.atMs - a.atMs; });
+      if (!recent.length) return '<p class="need">No hands logged yet.</p>';
+      var html = '<p class="need">Newest first. Only 4Real hits count for the Quadzilla Leaderboard. Hands that are Not 4Real stay here with the reason and do not count. Tap a photo or 4Real badge to view it. A flag also appears when the same player and rank were logged within 10 minutes.</p>';
+      recent.forEach(function (entry, index) {
+        var player = findPlayer(entry.playerId);
+        var dup = isDuplicate(state.entries, entry.playerId, entry.rank, entry.atMs, entry.id);
+        html += '<div class="activity"><div style="display:flex;align-items:center;gap:10px;flex:1">';
+        if (hasPhoto(entry)) html += '<img class="thumb" alt="" src="' + entry.photo.dataUrl + '" data-act="view-photo" data-id="' + escapeHtml(entry.id) + '">';
+        html += '<div><div class="title">' + escapeHtml(player ? QuadsParser.displayName(player) : "Unknown") + " — " + escapeHtml(entry.rank) + '</div><div class="meta">' + escapeHtml(formatWhen(entry.atMs)) + (entry.machine ? " · Machine " + escapeHtml(entry.machine) : "") + " · DEMO DATA</div>";
+        html += proofBadges(entry);
+        if (dup) html += '<div class="flag">Possible duplicate</div>';
+        if (entry.suiteApproval === "pending" || entry.suiteApproval === "held") {
+          html += '<div class="mgr">';
+          html += '<button type="button" class="quiet" data-act="suite-approve" data-id="' + escapeHtml(entry.id) + '">Approve suite</button>';
+          html += '<button type="button" class="quiet" data-act="suite-hold" data-id="' + escapeHtml(entry.id) + '">Hold</button>';
+          html += "</div>";
+        }
+        html += '</div></div><button type="button" class="undo-btn" data-act="remove" data-id="' + escapeHtml(entry.id) + '">' + (index === 0 ? "Undo" : "Remove") + "</button></div>";
+      });
+      return html;
+    }
+    function renderSheet() {
+      var s = ui.sheet;
+      if (!s) return "";
+      if (s.kind === "success") {
+        var remain = Math.max(0.2, ((s.successEndsAt || (Date.now() + SUCCESS_MS)) - Date.now()) / 1000);
+        var htmlS = '<div class="success-screen" data-act="ready-reset">';
+        htmlS += '<div class="who-name">' + escapeHtml(QuadsParser.displayName(s.player)) + "</div>";
+        htmlS += '<div class="rank-hero">' + escapeHtml(s.rank) + "</div>";
+        if (s.photo && s.photo.dataUrl) htmlS += '<img class="success-photo" alt="Verified machine screen" src="' + s.photo.dataUrl + '">';
+        htmlS += '<span class="stamp yes"><span class="stamp-mark">4Real \u2713 Verified</span><span class="stamp-meta">' + escapeHtml(stampDetails(s.savedEntry || { photo: s.photo, machine: (s.scan && s.scan.machine) || "", atMs: (s.photo && s.photo.capturedAtMs) || Date.now() })) + "</span></span>";
+        htmlS += '<button type="button" class="rotate-btn" data-act="rotate-photo">Rotate</button>';
+        htmlS += '<div class="countdown-track"><div class="countdown-bar" style="animation-duration:' + remain.toFixed(2) + 's"></div></div>';
+        htmlS += '<p class="need">Tap anywhere to continue</p></div>';
+        return htmlS;
+      }
+      var html = '<div class="scrim" data-act="cancel"><div class="sheet" data-stop="1">';
+      if (s.kind === "confirm") {
+        html += '<div class="who-name">' + escapeHtml(QuadsParser.displayName(s.player)) + "</div>";
+        if (s.isNew) html += '<p class="need">New player — first quad.</p>';
+        html += '<div class="rank-hero">' + escapeHtml(s.rank) + "</div>";
+        if (s.dup) html += '<div class="dup">Possible duplicate — this rank was already logged for them in the last 10 minutes.</div>';
+        if (s.completesSuite) {
+          html += '<div class="dup">' + (state.settings.requireSuiteApproval ? "This completes the suite — after a Verified scan it will wait for manager approval." : "This completes the suite.") + "</div>";
+        }
+        html += '<p class="need">OK opens the camera. Photos can’t be uploaded — only a live capture taken now counts. An old or reused photo has the wrong time stamp and is rejected. The hand is saved only after the AI scan passes.</p>';
+        html += '<button type="button" class="ok" data-act="ok-log">OK</button>';
+        html += '<button type="button" class="cancel" data-act="cancel">Cancel</button>';
+      } else if (s.kind === "camera") {
+        html = '<div class="scrim" data-act="cancel"><div class="sheet wide" data-stop="1">';
+        html += '<div class="who-name">' + escapeHtml(QuadsParser.displayName(s.player)) + " — " + escapeHtml(s.rank) + "</div>";
+        html += '<div class="viewfinder">';
+        if (s.demoCamera) {
+          html += '<span class="demo-tag">DEMO CAMERA</span>';
+          html += '<canvas id="demo-view" width="640" height="480"></canvas>';
+        } else {
+          html += '<video id="live-video" autoplay playsinline muted webkit-playsinline></video>';
+        }
+        html += "</div>";
+        if (s.cameraStarting && !s.demoCamera) html += '<p class="need">Starting camera…</p>';
+        if (s.demoCamera) html += '<p class="need">No live camera on this device, or permission was declined. This is a clearly labeled Demo camera so the flow still works.</p>';
+        html += '<p class="need">Photos can’t be uploaded. Only a live capture taken now counts. An old or reused photo has the wrong time stamp and is rejected.</p>';
+        html += '<button type="button" class="ok" data-act="capture-frame"' + (s.cameraStarting && !s.demoCamera ? " disabled" : "") + '>Capture</button>';
+        html += '<button type="button" class="cancel" data-act="cancel">Cancel</button>';
+        html += '<button type="button" class="quiet" data-act="demo-fail" style="width:100%;margin-top:8px">' + (s.demoForceFail ? "Demo fail is on — this scan will be Not 4Real" : "Demo: fail this scan") + "</button>";
+      } else if (s.kind === "scanning") {
+        html = '<div class="scrim" data-act="cancel"><div class="sheet wide" data-stop="1">';
+        html += "<h2>Review</h2>";
+        html += '<div class="who-name">' + escapeHtml(QuadsParser.displayName(s.player)) + " — " + escapeHtml(s.rank) + "</div>";
+        if (s.photo && s.photo.dataUrl) html += '<img class="photo-preview" alt="Captured machine screen" src="' + s.photo.dataUrl + '">';
+        html += '<button type="button" class="rotate-btn" data-act="rotate-photo">Rotate</button>';
+        html += '<div class="scan-box"><div class="scan-dot"></div><h2>Scanning…</h2>';
+        html += '<p class="need">Reading the four of a kind and the machine number from the screen. The live version would detect upside-down cards and correct them. If this still looks flipped, tap Rotate.</p></div>';
+      } else if (s.kind === "scan-result") {
+        var scan = s.scan || {};
+        html += "<h2>" + (scan.decided ? (scan.status === "verified" ? "4Real \u2713 Verified" : "Not 4Real") : "Scan result") + "</h2>";
+        html += '<div class="who-name">' + escapeHtml(QuadsParser.displayName(s.player)) + " — " + escapeHtml(s.rank) + "</div>";
+        if (s.photo && s.photo.dataUrl) html += '<img class="photo-preview" alt="Captured machine screen" src="' + s.photo.dataUrl + '">';
+        html += '<button type="button" class="rotate-btn" data-act="rotate-photo">Rotate</button>';
+        html += '<div class="result-card">';
+        html += '<div class="row"><span class="k">Detected rank</span><span class="v">' + escapeHtml(scan.detectedRank || "—") + "</span></div>";
+        html += '<div class="row"><span class="k">Machine #</span><span class="v">' + escapeHtml(scan.machine || "—") + "</span></div>";
+        html += '<div class="row"><span class="k">Captured</span><span class="v">' + escapeHtml(scan.capturedAtMs ? formatWhen(scan.capturedAtMs) : "—") + "</span></div>";
+        html += "</div>";
+        if (scan.status === "rejected") {
+          html += '<div class="dup">' + (scan.rejectReason === "stale timestamp"
+            ? "Not 4Real — stale timestamp. This capture has the wrong time stamp. Only a live picture taken now is accepted. Photos can’t be uploaded. An old or reused photo is rejected."
+            : scan.rejectReason === "duplicate photo"
+              ? "Not 4Real — duplicate photo. This image was already used."
+              : "Not 4Real — " + escapeHtml(QuadsProof.reasonLabel(scan.rejectReason)) + ".") + "</div>";
+          html += '<p class="need">This hand is Not 4Real and does not count for the Quadzilla Leaderboard.</p>';
+          html += '<div class="fail-actions">';
+          html += '<button type="button" class="ok" data-act="retake">Retake</button>';
+          html += '<button type="button" class="cancel" data-act="ready-reset">Cancel</button>';
+          html += "</div>";
+        } else if (scan.showFailReasons) {
+          html += '<p class="need">Choose a demo fail reason. In the live version, the vision model would return this on its own.</p>';
+          html += '<div class="fail-choices">';
+          html += '<button type="button" class="primary" data-act="scan-fail-reason" data-reason="rank mismatch" style="background:var(--danger);color:#fff">Rank mismatch</button>';
+          html += '<button type="button" class="quiet" data-act="scan-fail-reason" data-reason="no machine # found" style="width:100%">No machine # found</button>';
+          html += "</div>";
+          html += '<button type="button" class="cancel" data-act="ready-reset">Cancel</button>';
+        }
+      } else if (s.kind === "pin") {
+        var pin = s.pin || "";
+        html += "<h2>Manager PIN</h2>";
+        html += '<p class="need">Settings, Reset, Close Week, and manager approvals are locked so bartenders can only log hits.</p>';
+        html += '<p class="need">Demo PIN: 1234</p>';
+        html += '<div class="pin-dots">';
+        var d;
+        for (d = 0; d < 4; d += 1) html += "<span" + (d < pin.length ? ' class="on"' : "") + "></span>";
+        html += "</div>";
+        if (s.error) html += '<div class="dup">' + escapeHtml(s.error) + "</div>";
+        html += '<div class="pin-pad">';
+        ["1","2","3","4","5","6","7","8","9","del","0","ok"].forEach(function (key) {
+          if (key === "del") html += '<button type="button" data-act="pin-del">⌫</button>';
+          else if (key === "ok") html += '<button type="button" data-act="pin-ok">OK</button>';
+          else html += '<button type="button" data-act="pin-digit" data-digit="' + key + '">' + key + "</button>";
+        });
+        html += "</div>";
+        html += '<button type="button" class="cancel" data-act="cancel">Cancel</button>';
+      } else if (s.kind === "photo") {
+        var e = s.entry;
+        var player = e ? findPlayer(e.playerId) : null;
+        html += '<div class="viewer"><h2>Photo proof</h2>';
+        html += '<div class="who-name">' + escapeHtml(player ? QuadsParser.displayName(player) : "Unknown") + " — " + escapeHtml(e.rank) + "</div>";
+        if (e.photo && e.photo.dataUrl) html += '<img alt="Machine screen" src="' + e.photo.dataUrl + '">';
+        else html += '<p class="need">No photo on this hand.</p>';
+        html += '<p class="need">' + escapeHtml(formatWhen((e.photo && (e.photo.capturedAtMs || e.photo.takenAtMs)) || e.atMs)) + (e.machine ? " · Machine " + escapeHtml(e.machine) : "") + "</p>";
+        html += proofBadges(e);
+        if (e.suiteApproval) {
+          html += '<div class="suite-badge' + (e.suiteApproval === "approved" ? " ok" : "") + '">Suite: ' + escapeHtml(e.suiteApproval) + "</div>";
+          if (e.suiteApproval === "pending" || e.suiteApproval === "held") {
+            html += '<div class="mgr"><button type="button" class="quiet" data-act="suite-approve" data-id="' + escapeHtml(e.id) + '">Approve suite</button><button type="button" class="quiet" data-act="suite-hold" data-id="' + escapeHtml(e.id) + '">Hold</button></div>';
+          }
+        }
+        html += '<button type="button" class="cancel" data-act="cancel">Close</button></div>';
+      } else if (s.kind === "picker") {
+        html += "<h2>Which " + escapeHtml(QuadsParser.prettyQuery(s.nameQuery || "player")) + "?</h2>";
+        sortPlayers(s.matches).forEach(function (p) {
+          var count = uniqueRanks(state.entries, p.id).length;
+          html += '<button type="button" class="pick-btn" data-act="pick" data-id="' + escapeHtml(p.id) + '"><div class="avatar">' + escapeHtml(initials(p)) + '</div><div class="who"><div class="name">' + escapeHtml(QuadsParser.displayName(p)) + '</div><div class="meta">' + count + "/13 · DEMO DATA</div></div></button>";
+        });
+        html += '<button type="button" class="cancel" data-act="cancel">Cancel</button>';
+      } else if (s.kind === "unknown") {
+        html += "<h2>No player named " + escapeHtml(QuadsParser.prettyQuery(s.nameQuery)) + " yet</h2>";
+        html += '<div class="rank-hero">' + escapeHtml(s.rank) + "</div>";
+        html += '<button type="button" class="ok" data-act="add-log">Add ' + escapeHtml(QuadsParser.prettyQuery(s.nameQuery)) + " and log</button>";
+        html += '<button type="button" class="cancel" data-act="cancel">Cancel</button>';
+      } else if (s.kind === "needs") {
+        var missing = missingRanks(state.entries, s.player.id);
+        html += '<div class="who-name">' + escapeHtml(QuadsParser.displayName(s.player)) + "</div>";
+        html += '<p class="need" style="margin:12px 0 18px">' + (missing.length ? "Needs " + escapeHtml(missing.join(", ")) + " to finish the suite." : "Full suite — nothing left.") + "</p>";
+        html += renderRing(13 - missing.length) + '<button type="button" class="cancel" data-act="cancel">Close</button>';
+      } else if (s.kind === "unknown-needs") {
+        html += "<h2>No player named " + escapeHtml(QuadsParser.prettyQuery(s.nameQuery || "")) + '</h2><button type="button" class="cancel" data-act="cancel">Close</button>';
+      } else if (s.kind === "needs-player") {
+        html += "<h2>Which player?</h2><p class=\"need\">Heard " + escapeHtml(QuadsParser.rankLabel(s.rank)) + ", but no last name. Say it again like “Lopez quad " + escapeHtml(s.rank) + "”, or pick someone.</p>";
+        sortPlayers(state.players).forEach(function (p) {
+          html += '<button type="button" class="pick-btn" data-act="pick" data-id="' + escapeHtml(p.id) + '"><div class="avatar">' + escapeHtml(initials(p)) + '</div><div class="who"><div class="name">' + escapeHtml(QuadsParser.displayName(p)) + "</div></div></button>";
+        });
+        html += '<button type="button" class="cancel" data-act="cancel">Cancel</button>';
+      } else if (s.kind === "undo") {
+        html += '<h2>Undo last hand?</h2><div class="who-name">' + escapeHtml(s.player ? QuadsParser.displayName(s.player) : "Unknown") + '</div><div class="rank-hero">' + escapeHtml(s.entry.rank) + '</div><button type="button" class="ok" data-act="ok-undo">OK</button><button type="button" class="cancel" data-act="cancel">Cancel</button>';
+      } else if (s.kind === "unrecognized") {
+        html += '<h2>Didn’t catch a hand</h2><p class="need">Try “Lopez quad 5” or “Alvarez quad fives.”</p>';
+        if (s.raw) html += '<p class="need">Heard: “' + escapeHtml(s.raw) + '”</p>';
+        html += '<button type="button" class="cancel" data-act="cancel">Close</button>';
+      }
+      return html + "</div></div>";
+    }
+
+    function renderSettings() {
+      if (!ui.managerUnlocked) {
+        return '<div class="card"><h2>Manager only</h2><p class="need">Settings, Reset, Close Week, and approvals need the manager PIN so bartenders can only log hits. Demo PIN: 1234.</p><button type="button" class="primary" data-act="unlock-manager">Enter PIN</button></div>';
+      }
+      var s = state.settings;
+      var html = '<div class="card"><h2>Manager</h2><p class="need">Unlocked for this session. Bartenders do not see these controls.</p>';
+      html += '<p class="need">Demo PIN: 1234</p>';
+      html += '<button type="button" class="quiet" data-act="manager-lock" style="width:100%">Lock manager</button></div>';
+      html += '<div class="card"><h2>Verification</h2>';
+      html += "<p class=\"need\">A hand is saved only after a live camera capture passes the AI scan. Photos can’t be uploaded or picked from the tablet library. An old or reused photo has the wrong time stamp and is rejected. Captures must be taken within about two minutes of OK, and each image hash can be used only once.</p>";
+      html += "<p class=\"need\">This offline demo simulates a fast AI scan, then a 10-second 4Real success screen. The live version calls a vision AI model to read the four of a kind and the machine number off the screen, and to detect whether the cards are upside down.</p>";
+      html += '<div class="toggle-row"><div><h3>Auto-flip upside-down photos</h3><p>On by default. Bartenders shoot the machine screen from across the bar, so the photo is often upside down. When this is on, the demo always flips the capture 180° before the scan and the watermark, so the stamp reads correctly. You can still use Rotate on the review step if the auto-flip is wrong.</p></div>';
+      html += '<button type="button" class="switch' + (s.autoFlip ? " on" : "") + '" data-act="toggle-auto-flip" aria-pressed="' + (s.autoFlip ? "true" : "false") + '" aria-label="Auto-flip upside-down photos"></button></div>';
+      html += '<div class="toggle-row"><div><h3>Manager approval for a completed suite</h3><p>Optional. If a 4Real hand is someone’s 13th unique rank, it waits for a manager to approve or hold it before they appear on the official suite list.</p></div>';
+      html += '<button type="button" class="switch' + (s.requireSuiteApproval ? " on" : "") + '" data-act="toggle-suite-approval" aria-pressed="' + (s.requireSuiteApproval ? "true" : "false") + '" aria-label="Manager approval for a completed suite"></button></div>';
+      html += "</div>";
+      html += '<div class="card"><h2>Kiosk setup</h2>';
+      html += "<ol class=\"need\" style=\"text-align:left;padding-left:18px\">";
+      html += "<li style=\"margin-bottom:8px\"><strong>Add to Home Screen</strong> — in Safari on the iPad, tap Share, then Add to Home Screen. Opening that icon runs this tracker full screen.</li>";
+      html += "<li style=\"margin-bottom:8px\"><strong>Guided Access</strong> — go to Settings &gt; Accessibility &gt; Guided Access and turn it on. Open Quadzilla, then triple-click the side or home button to start Guided Access so staff stay in this app.</li>";
+      html += "<li><strong>Production</strong> — use MDM single app mode so the iPad is locked to this tracker and can’t leave it.</li>";
+      html += "</ol></div>";
+      html += '<div class="card"><h2>Reset demo data</h2><p class="need">Restores the sample players and clears hands logged on this device.</p>';
+      html += '<button type="button" class="primary" data-act="reset" style="background:var(--danger);color:#fff">Reset demo</button></div>';
+      return html;
+    }
+    function render() {
+      var active = document.activeElement;
+      var focusId = active && active.id ? active.id : null;
+      var start = active && typeof active.selectionStart === "number" ? active.selectionStart : null;
+      var end = active && typeof active.selectionEnd === "number" ? active.selectionEnd : null;
+      if (ui.view === "settings" && !ui.managerUnlocked && !(ui.sheet && ui.sheet.kind === "pin")) {
+        ui.sheet = { kind: "pin", pin: "", error: "", next: { type: "view", view: "settings" } };
+      }
+      var body = ui.view === "log" ? renderLog() : ui.view === "players" ? renderPlayers() : ui.view === "drawing" ? renderDrawing() : ui.view === "settings" ? renderSettings() : renderActivity();
+      var html = '<header class="top"><div><div class="brand-kicker">Four of a kind tracker · Demo</div>';
+      html += '<div class="wordmark" role="heading" aria-level="1" aria-label="Quadzilla"><div class="wordmark-text">QUAD<span>ZILLA</span></div><div class="quad-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>';
+      html += '<p class="sub">Voice-first logging for four-of-a-kind ranks. All players are fake DEMO DATA. OK opens the camera. A hand is saved only after a live capture passes the scan. Photos can’t be uploaded.</p></div>';
+      html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px"><span class="badge">DEMO DATA</span><span class="lock-chip">' + (ui.managerUnlocked ? "Manager unlocked" : "Bartender mode") + '</span></div></header><nav class="nav">';
+      [["log", "Log"], ["players", "Players"], ["drawing", "Leaderboard"], ["activity", "Activity"], ["settings", "Settings"]].forEach(function (pair) {
+        html += '<button type="button"' + (ui.view === pair[0] ? ' class="on"' : "") + ' data-act="view" data-view="' + pair[0] + '">' + pair[1] + "</button>";
+      });
+      html += "</nav>" + body;
+      html += '<p class="foot">Players are added the first time they hit quads. This demo never touches a machine or a loyalty account. Promo rules and winner announcements still need a person. ' + (storageOk ? "Hands you confirm are saved on this device." : "This browser blocked saved data, so a refresh will restore the sample list.") + "</p>";
+      html += renderSheet();
+      if (ui.toast) html += '<div class="toast" role="status">' + escapeHtml(ui.toast) + "</div>";
+      var root = document.getElementById("app");
+      if (root) root.innerHTML = html;
+      if (focusId) {
+        var el = document.getElementById(focusId);
+        if (el && el.focus) {
+          el.focus();
+          if (start !== null && el.setSelectionRange) { try { el.setSelectionRange(start, end); } catch (err) {} }
+        }
+      }
+      afterRenderCamera();
+      saveState();
+    }
+    function closeWeek() {
+      var now = Date.now();
+      var nextId = "w-" + now;
+      state.weeks = state.weeks.map(function (week) {
+        return week.id === state.currentWeekId ? { id: week.id, label: week.label, startedAtMs: week.startedAtMs, closedAtMs: now } : week;
+      });
+      state.weeks.push({ id: nextId, label: weekLabel(now), startedAtMs: now, closedAtMs: null });
+      state.currentWeekId = nextId;
+      ui.viewWeekId = nextId;
+      ui.pendingClose = false;
+      showToast("New week started");
+    }
+    function resetDemo() {
+      state = makeInitialState();
+      stopCamera();
+      if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
+      ui.view = "log"; ui.query = ""; ui.typed = ""; ui.playerId = null; ui.sheet = null; ui.heard = ""; ui.pendingClose = false; ui.viewWeekId = state.currentWeekId; ui.managerUnlocked = false;
+      try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
+      showToast("Demo reset");
+    }
+
+    function openPin(next) {
+      ui.sheet = { kind: "pin", pin: "", error: "", next: next || null };
+    }
+    function applySuite(act, eid) {
+      state.entries.forEach(function (e) {
+        if (e.id !== eid) return;
+        if (act === "suite-approve") e.suiteApproval = "approved";
+        if (act === "suite-hold") e.suiteApproval = "held";
+      });
+      if (ui.sheet && ui.sheet.kind === "photo" && ui.sheet.entry && ui.sheet.entry.id === eid) {
+        ui.sheet.entry = state.entries.filter(function (e) { return e.id === eid; })[0];
+      }
+      showToast(act === "suite-approve" ? "Suite approved" : "Suite held");
+    }
+    function submitPin() {
+      if (!ui.sheet || ui.sheet.kind !== "pin") return;
+      if ((ui.sheet.pin || "") === DEMO_PIN) {
+        var next = ui.sheet.next;
+        ui.managerUnlocked = true;
+        ui.sheet = null;
+        if (next && next.type === "view") { ui.view = next.view; ui.playerId = null; }
+        else if (next && next.type === "ask-close") { ui.view = "drawing"; ui.pendingClose = true; }
+        else if (next && next.type === "close-week") { closeWeek(); return; }
+        else if (next && next.type === "reset") { resetDemo(); return; }
+        else if (next && next.type === "suite") { applySuite(next.act, next.id); return; }
+        render();
+        return;
+      }
+      ui.sheet.pin = "";
+      ui.sheet.error = "That PIN is incorrect.";
+      render();
+    }
+    document.addEventListener("click", function (event) {
+      if (event.target.classList && event.target.classList.contains("scrim")) {
+        if (ui.sheet && (ui.sheet.kind === "confirm" || ui.sheet.kind === "camera" || ui.sheet.kind === "scanning" || ui.sheet.kind === "scan-result")) { resetToReady(); return; }
+        dismissSheet();
+        render();
+        return;
+      }
+      var btn = event.target.closest("[data-act]");
+      if (!btn) return;
+      var act = btn.getAttribute("data-act");
+      if (act === "view") {
+        var view = btn.getAttribute("data-view");
+        if (view === "settings" && !ui.managerUnlocked) { openPin({ type: "view", view: "settings" }); render(); return; }
+        ui.view = view;
+        ui.playerId = null;
+      }
+      else if (act === "mic") { toggleMic(); return; }
+      else if (act === "type-go") { if (ui.typed.trim()) handlePhrase(ui.typed.trim()); return; }
+      else if (act === "chip") { ui.typed = btn.getAttribute("data-phrase") || ""; handlePhrase(ui.typed); return; }
+      else if (act === "ok-log") { openCameraFromOk(); return; }
+      else if (act === "capture-frame") { captureLiveFrame(); return; }
+      else if (act === "scan-pass") { finishScanPass(); return; }
+      else if (act === "scan-fail") { showFailReasons(); return; }
+      else if (act === "scan-fail-cancel") {
+        if (ui.sheet && ui.sheet.scan) ui.sheet.scan.showFailReasons = false;
+        render();
+        return;
+      }
+      else if (act === "scan-fail-reason") { finishScanFail(btn.getAttribute("data-reason")); return; }
+      else if (act === "scan-done") { closeScanResult(); return; }
+      else if (act === "ready-reset") { resetToReady(); return; }
+      else if (act === "retake") { retakeCapture(); return; }
+      else if (act === "demo-fail") {
+        if (ui.sheet && ui.sheet.kind === "camera") {
+          ui.sheet.demoForceFail = !ui.sheet.demoForceFail;
+          render();
+        }
+        return;
+      }
+      else if (act === "rotate-photo") { rotateReview(); return; }
+      else if (act === "toggle-auto-flip") {
+        if (!ui.managerUnlocked) { openPin({ type: "view", view: "settings" }); render(); return; }
+        state.settings.autoFlip = !state.settings.autoFlip;
+      }
+      else if (act === "pin-digit") {
+        if (ui.sheet && ui.sheet.kind === "pin") {
+          if ((ui.sheet.pin || "").length < 4) ui.sheet.pin = (ui.sheet.pin || "") + btn.getAttribute("data-digit");
+          ui.sheet.error = "";
+          if (ui.sheet.pin.length >= 4) { submitPin(); return; }
+        }
+      }
+      else if (act === "pin-del") {
+        if (ui.sheet && ui.sheet.kind === "pin") ui.sheet.pin = (ui.sheet.pin || "").slice(0, -1);
+      }
+      else if (act === "pin-ok") { submitPin(); return; }
+      else if (act === "unlock-manager") { openPin({ type: "view", view: "settings" }); render(); return; }
+      else if (act === "manager-lock") {
+        ui.managerUnlocked = false;
+        if (ui.view === "settings") ui.view = "log";
+        showToast("Manager locked");
+        return;
+      }
+      else if (act === "add-log") {
+        var s = ui.sheet;
+        var parts = QuadsParser.splitName(s.nameQuery);
+        var player = { id: "p-pending", first: parts.first || "Player", last: parts.last };
+        openConfirm(player, s.rank, true);
+        return;
+      }
+      else if (act === "pick") {
+        var picked = findPlayer(btn.getAttribute("data-id"));
+        if (!picked) return;
+        if (ui.sheet && ui.sheet.intent === "needs") { ui.sheet = { kind: "needs", player: picked }; render(); return; }
+        if (ui.sheet) { openConfirm(picked, ui.sheet.rank, false); return; }
+      }
+      else if (act === "cancel") {
+        if (ui.sheet && (ui.sheet.kind === "confirm" || ui.sheet.kind === "camera" || ui.sheet.kind === "scanning" || ui.sheet.kind === "scan-result" || ui.sheet.kind === "success")) { resetToReady(); return; }
+        dismissSheet();
+      }
+      else if (act === "open-player") ui.playerId = btn.getAttribute("data-id");
+      else if (act === "back-list") ui.playerId = null;
+      else if (act === "detail-rank") {
+        var p = findPlayer(ui.playerId);
+        if (p) { openConfirm(p, btn.getAttribute("data-rank"), false); return; }
+      }
+      else if (act === "remove") {
+        var id = btn.getAttribute("data-id");
+        state.entries = state.entries.filter(function (e) { return e.id !== id; });
+        showToast("Removed");
+        return;
+      }
+      else if (act === "ok-undo") {
+        if (ui.sheet && ui.sheet.entry) {
+          var eid = ui.sheet.entry.id;
+          state.entries = state.entries.filter(function (e) { return e.id !== eid; });
+        }
+        ui.sheet = null;
+        showToast("Undone");
+        return;
+      }
+      else if (act === "sort") {
+        var key = btn.getAttribute("data-key");
+        if (key === ui.sortKey) ui.sortDir = ui.sortDir === "asc" ? "desc" : "asc";
+        else { ui.sortKey = key; ui.sortDir = key === "name" ? "asc" : "desc"; }
+      }
+      else if (act === "week") ui.viewWeekId = btn.getAttribute("data-id");
+      else if (act === "ask-close") {
+        if (!ui.managerUnlocked) { openPin({ type: "ask-close" }); render(); return; }
+        ui.pendingClose = true;
+      }
+      else if (act === "cancel-close") ui.pendingClose = false;
+      else if (act === "close-week") {
+        if (!ui.managerUnlocked) { openPin({ type: "close-week" }); render(); return; }
+        closeWeek();
+        return;
+      }
+      else if (act === "view-photo") {
+        var look = state.entries.filter(function (e) { return e.id === btn.getAttribute("data-id"); })[0];
+        if (look) ui.sheet = { kind: "photo", entry: look };
+        else return;
+      }
+      else if (act === "suite-approve" || act === "suite-hold") {
+        if (!ui.managerUnlocked) {
+          openPin({ type: "suite", act: act, id: btn.getAttribute("data-id") });
+          render();
+          return;
+        }
+        applySuite(act, btn.getAttribute("data-id"));
+        return;
+      }
+      else if (act === "toggle-suite-approval") {
+        if (!ui.managerUnlocked) { openPin({ type: "view", view: "settings" }); render(); return; }
+        state.settings.requireSuiteApproval = !state.settings.requireSuiteApproval;
+      }
+      else if (act === "reset") {
+        if (!ui.managerUnlocked) { openPin({ type: "reset" }); render(); return; }
+        resetDemo();
+        return;
+      }
+      else return;
+      render();
+    });
+    document.addEventListener("input", function (event) {
+      var el = event.target;
+      var bind = el.getAttribute && el.getAttribute("data-bind");
+      if (!bind) return;
+      ui[bind] = el.value;
+      if (bind === "query") render();
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" && event.target && event.target.getAttribute("data-bind") === "typed") {
+        event.preventDefault();
+        if (ui.typed.trim()) handlePhrase(ui.typed.trim());
+      }
+      if (ui.sheet && ui.sheet.kind === "pin") {
+        if (/^[0-9]$/.test(event.key)) {
+          event.preventDefault();
+          if ((ui.sheet.pin || "").length < 4) ui.sheet.pin = (ui.sheet.pin || "") + event.key;
+          ui.sheet.error = "";
+          if (ui.sheet.pin.length >= 4) submitPin();
+          else render();
+        } else if (event.key === "Backspace") {
+          event.preventDefault();
+          ui.sheet.pin = (ui.sheet.pin || "").slice(0, -1);
+          render();
+        } else if (event.key === "Enter") {
+          event.preventDefault();
+          submitPin();
+        }
+      }
+    });
+    function installKiosk() {
+      try {
+        var manifest = {
+          name: "Quadzilla",
+          short_name: "Quadzilla",
+          display: "standalone",
+          background_color: "#0b0d12",
+          theme_color: "#0b0d12",
+          start_url: ".",
+          orientation: "any"
+        };
+        var existing = document.querySelector('link[rel="manifest"]');
+        if (!existing) {
+          var link = document.createElement("link");
+          link.rel = "manifest";
+          link.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" }));
+          document.head.appendChild(link);
+        }
+      } catch (err) {}
+      ["gesturestart", "gesturechange", "gestureend"].forEach(function (ev) {
+        document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });
+      });
+      document.addEventListener("touchmove", function (e) {
+        if (e.touches && e.touches.length > 1) e.preventDefault();
+      }, { passive: false });
+    }
+    installKiosk();
+    render();
+  })();
+  </script>
+</body>
+</html>
