@@ -163,6 +163,28 @@
     .stamp .stamp-meta { font-size: 11px; font-weight: 650; color: var(--ink); opacity: 0.9; text-transform: none; letter-spacing: 0; }
     .stamp.no { border-color: var(--danger); color: var(--danger); background: var(--danger-dim); transform: rotate(2deg); }
     .stamp.no .stamp-meta { color: var(--danger); }
+    .stamp.bypass { border-color: var(--warn); color: var(--warn); background: var(--warn-dim); transform: rotate(1deg); }
+    .stamp.bypass .stamp-meta { color: var(--warn); }
+    .sheet .bypass-btn {
+      appearance: none; width: 100%; border: 1px solid var(--warn); border-radius: 16px;
+      min-height: 52px; margin-top: 10px; background: var(--warn-dim); color: var(--warn);
+      font-size: 16px; font-weight: 700;
+    }
+    .sheet-field { text-align: left; margin: 0 0 12px; }
+    .sheet-field label { display: block; color: var(--faint); font-size: 13px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; }
+    .sheet-field input { width: 100%; min-height: 52px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); padding: 0 14px; font-size: 17px; }
+    .sheet-field input:focus { outline: 2px solid var(--warn); outline-offset: 1px; }
+    .success-screen.bypass .rank-hero { color: var(--warn); text-shadow: 0 0 28px rgba(255, 200, 87, 0.45); }
+    .success-screen.bypass .countdown-bar { background: var(--warn); box-shadow: 0 0 18px rgba(255, 200, 87, 0.55); }
+    .mgr-tabs { display: flex; gap: 8px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; margin-bottom: 18px; }
+    .mgr-tabs button { flex: 1; min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--muted); font-size: 15px; font-weight: 650; }
+    .mgr-tabs button.on { background: var(--surface-2); color: var(--ink); }
+    .bypass-count { color: var(--warn); font-weight: 800; }
+    .bypass-player-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); text-align: left; }
+    .bypass-player-row.heavy { background: var(--warn-dim); margin: 0 -12px; padding: 10px 12px; border-radius: 10px; border-bottom: 0; }
+    .bypass-entry { padding: 12px 0; border-bottom: 1px solid var(--line); text-align: left; }
+    .bypass-entry .title { font-weight: 700; }
+    .bypass-entry .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
     .unverified { background: var(--warn-dim); color: var(--warn); }
     .ai-badge { background: #2a3142; color: var(--muted); }
     .ai-badge.mismatch { background: var(--danger-dim); color: var(--danger); }
@@ -1142,7 +1164,8 @@ var QuadsProof = (function () {
     var TZ = "America/Los_Angeles";
     var DUPLICATE_MS = 10 * 60 * 1000;
     var DEMO_PIN = "1234";
-    var STORAGE_KEY = "quads-club-tracker-demo-v4";
+    var STORAGE_KEY = "quads-club-tracker-demo-v5";
+    var DEFAULT_BYPASS_REASON = "VIP kept playing";
 
     function pst(month, day, hour, minute) {
       minute = minute || 0;
@@ -1214,11 +1237,18 @@ var QuadsProof = (function () {
         });
         tick += 1;
       });
+      function pushBypass(playerId, rank, atMs, weekId, staff, reason) {
+        entries.push({ id: "e-" + n, playerId: playerId, rank: rank, atMs: atMs, note: "", weekId: weekId, machine: "", photo: null, status: "bypassed", rejectReason: null, detectedRank: "", suiteApproval: null, bypass: true, loggedBy: staff, bypassReason: reason });
+        n += 1;
+      }
+      pushBypass("p-rossi", "7", pst(11, 10, 15, 20), "w1", "JD", "VIP kept playing");
+      pushBypass("p-rossi", "K", pst(11, 11, 18, 5), "w1", "JD", "VIP kept playing");
+      pushBypass("p-alvarez", "5", pst(11, 12, 13, 40), "w1", "MK", "VIP kept playing");
       return { players: players, entries: entries, weeks: weeks, currentWeekId: "w1", nextPlayer: 30, nextEntry: n, settings: defaultSettings(), photoHashes: [] };
     }
 
     function defaultSettings() {
-      return { requireSuiteApproval: false, autoFlip: true };
+      return { requireSuiteApproval: false, autoFlip: true, lastStaff: "" };
     }
     function wouldCompleteSuite(playerId, rank) {
       var have = uniqueRanks(state.entries, playerId);
@@ -1245,7 +1275,22 @@ var QuadsProof = (function () {
       return mark.suiteApproval === "approved";
     }
 
-    function isVerified(entry) { return !!(entry && entry.status === "verified"); }
+    function isBypass(entry) { return !!(entry && (entry.bypass === true || entry.status === "bypassed")); }
+    function isVerified(entry) { return !!(entry && entry.status === "verified" && !isBypass(entry)); }
+    function bypassedEntries() {
+      return state.entries.filter(isBypass).slice().sort(function (a, b) { return b.atMs - a.atMs; });
+    }
+    function bypassCountsByPlayer() {
+      var counts = {};
+      bypassedEntries().forEach(function (entry) {
+        counts[entry.playerId] = (counts[entry.playerId] || 0) + 1;
+      });
+      return counts;
+    }
+    function staffLabel(entry) {
+      var name = entry && entry.loggedBy ? String(entry.loggedBy).trim() : "";
+      return name || "Not recorded";
+    }
     function uniqueRanks(entries, playerId, weekId) {
       var found = [];
       entries.forEach(function (entry) {
@@ -1314,11 +1359,16 @@ var QuadsProof = (function () {
       delete data.settings.aiCheck;
       if (typeof data.settings.requireSuiteApproval !== "boolean") data.settings.requireSuiteApproval = s.requireSuiteApproval;
       if (typeof data.settings.autoFlip !== "boolean") data.settings.autoFlip = s.autoFlip;
+      if (typeof data.settings.lastStaff !== "string") data.settings.lastStaff = typeof s.lastStaff === "string" ? s.lastStaff : "";
       if (!Array.isArray(data.photoHashes)) data.photoHashes = [];
       data.entries.forEach(function (e) {
         if (typeof e.machine !== "string") e.machine = e.machine ? String(e.machine) : "";
         if (!e.photo) e.photo = null;
+        if (e.bypass === true && e.status === "verified") e.status = "bypassed";
         if (!e.status) e.status = e.photo || e.aiStatus === "verified" ? "verified" : "verified";
+        if (typeof e.bypass !== "boolean") e.bypass = e.status === "bypassed";
+        if (typeof e.loggedBy !== "string") e.loggedBy = e.loggedBy ? String(e.loggedBy) : "";
+        if (typeof e.bypassReason !== "string") e.bypassReason = e.bypass ? String(e.bypassReason || e.note || "") : "";
         if (!e.rejectReason) e.rejectReason = null;
         if (!e.suiteApproval) e.suiteApproval = null;
         if (e.photo && e.photo.hash && data.photoHashes.indexOf(e.photo.hash) < 0) data.photoHashes.push(e.photo.hash);
@@ -1346,7 +1396,8 @@ var QuadsProof = (function () {
       view: "log", query: "", typed: "", listening: false, interim: "", heard: "", speechError: "",
       playerId: null, sortKey: "ranks", sortDir: "desc", viewWeekId: state.currentWeekId,
       pendingClose: false, sheet: null, toast: null,
-      managerUnlocked: false
+      managerUnlocked: false,
+      settingsPane: "settings"
     };
     var cameraStream = null;
     var scanTimer = null;
@@ -1712,13 +1763,45 @@ var QuadsProof = (function () {
       if (verified) showToast(completes ? "4Real \u2713 Verified — awaiting suite approval" : "4Real \u2713 Verified");
       else showToast("Not 4Real");
     }
-    function commitEntry(status, reason, scan) {
+    function openBypassConfirm() {
+      var sheet = ui.sheet;
+      if (!sheet || sheet.kind !== "camera") return;
+      sheet.kind = "bypass-confirm";
+      if (typeof sheet.staff !== "string") sheet.staff = (state.settings && state.settings.lastStaff) || "";
+      if (typeof sheet.bypassReason !== "string" || !sheet.bypassReason) sheet.bypassReason = DEFAULT_BYPASS_REASON;
+      render();
+    }
+    function cancelBypassConfirm() {
+      if (!ui.sheet || ui.sheet.kind !== "bypass-confirm") return;
+      ui.sheet.kind = "camera";
+      render();
+    }
+    function confirmBypass() {
+      var sheet = ui.sheet;
+      if (!sheet || sheet.kind !== "bypass-confirm") return;
+      var staffInput = document.getElementById("bypass-staff");
+      var reasonInput = document.getElementById("bypass-reason");
+      if (staffInput) sheet.staff = staffInput.value;
+      if (reasonInput) sheet.bypassReason = reasonInput.value;
+      var staff = String(sheet.staff || "").trim();
+      var reason = String(sheet.bypassReason || "").trim() || DEFAULT_BYPASS_REASON;
+      if (staff) state.settings.lastStaff = staff;
+      stopCamera();
+      sheet.photo = null;
+      sheet.scan = null;
+      sheet.bypass = true;
+      commitEntry("bypassed", reason, null, { bypass: true, loggedBy: staff, bypassReason: reason });
+      beginSuccess();
+    }
+    function commitEntry(status, reason, scan, extras) {
       var sheet = ui.sheet;
       if (!sheet) return;
+      extras = extras || {};
       rememberHash(sheet.photo && sheet.photo.hash);
       var player = sheet.player;
+      var countsAsLog = status === "verified" || status === "bypassed" || extras.bypass;
       if (sheet.isNew && !findPlayer(player.id)) {
-        if (status !== "verified") {
+        if (!countsAsLog) {
           sheet.savedEntry = null;
           return;
         }
@@ -1727,10 +1810,11 @@ var QuadsProof = (function () {
         state.nextPlayer += 1;
         sheet.player = player;
       }
-      var completes = status === "verified" && wouldCompleteSuite(player.id, sheet.rank);
-      var capturedAtMs = (sheet.photo && sheet.photo.capturedAtMs) || Date.now();
+      var bypassed = status === "bypassed" || !!extras.bypass;
+      var completes = status === "verified" && !bypassed && wouldCompleteSuite(player.id, sheet.rank);
+      var capturedAtMs = bypassed ? Date.now() : ((sheet.photo && sheet.photo.capturedAtMs) || Date.now());
       var photo = null;
-      if (sheet.photo && sheet.photo.dataUrl) {
+      if (!bypassed && sheet.photo && sheet.photo.dataUrl) {
         photo = {
           dataUrl: sheet.photo.dataUrl,
           width: sheet.photo.width,
@@ -1745,14 +1829,17 @@ var QuadsProof = (function () {
         playerId: player.id,
         rank: sheet.rank,
         atMs: capturedAtMs,
-        note: "",
+        note: bypassed ? (extras.bypassReason || reason || "") : "",
         weekId: state.currentWeekId,
-        machine: (scan && scan.machine) || "",
-        detectedRank: (scan && scan.detectedRank) || "",
+        machine: bypassed ? "" : ((scan && scan.machine) || ""),
+        detectedRank: bypassed ? "" : ((scan && scan.detectedRank) || ""),
         photo: photo,
-        status: status,
-        rejectReason: reason || null,
-        suiteApproval: completes && state.settings.requireSuiteApproval ? "pending" : null
+        status: bypassed ? "bypassed" : status,
+        rejectReason: bypassed ? null : (reason || null),
+        suiteApproval: completes && state.settings.requireSuiteApproval ? "pending" : null,
+        bypass: bypassed,
+        loggedBy: typeof extras.loggedBy === "string" ? extras.loggedBy : "",
+        bypassReason: bypassed ? (extras.bypassReason || reason || DEFAULT_BYPASS_REASON) : ""
       };
       state.entries.push(entry);
       state.nextEntry += 1;
@@ -1984,6 +2071,9 @@ var QuadsProof = (function () {
         var yes = '<span class="stamp-mark">4Real \u2713 Verified</span><span class="stamp-meta">' + escapeHtml(stampDetails(entry)) + "</span>";
         if (hasPhoto(entry)) html += '<button type="button" class="stamp yes" data-act="view-photo" data-id="' + escapeHtml(entry.id) + '">' + yes + "</button>";
         else html += '<span class="stamp yes">' + yes + "</span>";
+      } else if (isBypass(entry)) {
+        var bypassMeta = [staffLabel(entry), entry.bypassReason || DEFAULT_BYPASS_REASON, stampDetails(entry)].filter(Boolean).join(" · ");
+        html += '<span class="stamp bypass"><span class="stamp-mark">Unverified · Bypass</span><span class="stamp-meta">' + escapeHtml(bypassMeta) + "</span></span>";
       } else if (entry && entry.status === "rejected") {
         html += '<span class="stamp no"><span class="stamp-mark">Not 4Real</span><span class="stamp-meta">' + escapeHtml(QuadsProof.reasonLabel(entry.rejectReason) || stampDetails(entry)) + "</span></span>";
       }
@@ -1995,7 +2085,7 @@ var QuadsProof = (function () {
     function renderActivity() {
       var recent = state.entries.slice().sort(function (a, b) { return b.atMs - a.atMs; });
       if (!recent.length) return '<p class="need">No hands logged yet.</p>';
-      var html = '<p class="need">Newest first. Only 4Real hits count for the Quadzilla Leaderboard. Hands that are Not 4Real stay here with the reason and do not count. Tap a photo or 4Real badge to view it. A flag also appears when the same player and rank were logged within 10 minutes.</p>';
+      var html = '<p class="need">Newest first. Only 4Real hits count for the Quadzilla Leaderboard. VIP bypasses are flagged Unverified and do not count. Hands that are Not 4Real stay here with the reason and do not count. Managers can review the bypassed list in Settings. Tap a photo or 4Real badge to view it. A flag also appears when the same player and rank were logged within 10 minutes.</p>';
       recent.forEach(function (entry, index) {
         var player = findPlayer(entry.playerId);
         var dup = isDuplicate(state.entries, entry.playerId, entry.rank, entry.atMs, entry.id);
@@ -2019,12 +2109,18 @@ var QuadsProof = (function () {
       if (!s) return "";
       if (s.kind === "success") {
         var remain = Math.max(0.2, ((s.successEndsAt || (Date.now() + SUCCESS_MS)) - Date.now()) / 1000);
-        var htmlS = '<div class="success-screen" data-act="ready-reset">';
+        var bypassedSuccess = !!(s.bypass || (s.savedEntry && isBypass(s.savedEntry)));
+        var htmlS = '<div class="success-screen' + (bypassedSuccess ? " bypass" : "") + '" data-act="ready-reset">';
         htmlS += '<div class="who-name">' + escapeHtml(QuadsParser.displayName(s.player)) + "</div>";
         htmlS += '<div class="rank-hero">' + escapeHtml(s.rank) + "</div>";
-        if (s.photo && s.photo.dataUrl) htmlS += '<img class="success-photo" alt="Verified machine screen" src="' + s.photo.dataUrl + '">';
-        htmlS += '<span class="stamp yes"><span class="stamp-mark">4Real \u2713 Verified</span><span class="stamp-meta">' + escapeHtml(stampDetails(s.savedEntry || { photo: s.photo, machine: (s.scan && s.scan.machine) || "", atMs: (s.photo && s.photo.capturedAtMs) || Date.now() })) + "</span></span>";
-        htmlS += '<button type="button" class="rotate-btn" data-act="rotate-photo">Rotate</button>';
+        if (!bypassedSuccess && s.photo && s.photo.dataUrl) htmlS += '<img class="success-photo" alt="Verified machine screen" src="' + s.photo.dataUrl + '">';
+        if (bypassedSuccess) {
+          var bypassStamp = s.savedEntry || { atMs: Date.now(), loggedBy: s.staff, bypassReason: s.bypassReason };
+          htmlS += '<span class="stamp bypass"><span class="stamp-mark">Logged, NOT 4Real verified</span><span class="stamp-meta">' + escapeHtml([staffLabel(bypassStamp), bypassStamp.bypassReason || DEFAULT_BYPASS_REASON, formatWhen(bypassStamp.atMs || Date.now())].join(" · ")) + "</span></span>";
+        } else {
+          htmlS += '<span class="stamp yes"><span class="stamp-mark">4Real \u2713 Verified</span><span class="stamp-meta">' + escapeHtml(stampDetails(s.savedEntry || { photo: s.photo, machine: (s.scan && s.scan.machine) || "", atMs: (s.photo && s.photo.capturedAtMs) || Date.now() })) + "</span></span>";
+          htmlS += '<button type="button" class="rotate-btn" data-act="rotate-photo">Rotate</button>';
+        }
         htmlS += '<div class="countdown-track"><div class="countdown-bar" style="animation-duration:' + remain.toFixed(2) + 's"></div></div>';
         htmlS += '<p class="need">Tap anywhere to continue</p></div>';
         return htmlS;
@@ -2056,6 +2152,7 @@ var QuadsProof = (function () {
         if (s.demoCamera) html += '<p class="need">No live camera on this device, or permission was declined. This is a clearly labeled Demo camera so the flow still works.</p>';
         html += '<p class="need">Photos can’t be uploaded. Only a live capture taken now counts. An old or reused photo has the wrong time stamp and is rejected.</p>';
         html += '<button type="button" class="ok" data-act="capture-frame"' + (s.cameraStarting && !s.demoCamera ? " disabled" : "") + '>Capture</button>';
+        html += '<button type="button" class="bypass-btn" data-act="bypass-open">Bypass photo (VIP)</button>';
         html += '<button type="button" class="cancel" data-act="cancel">Cancel</button>';
         html += '<button type="button" class="quiet" data-act="demo-fail" style="width:100%;margin-top:8px">' + (s.demoForceFail ? "Demo fail is on — this scan will be Not 4Real" : "Demo: fail this scan") + "</button>";
       } else if (s.kind === "scanning") {
@@ -2096,6 +2193,17 @@ var QuadsProof = (function () {
           html += "</div>";
           html += '<button type="button" class="cancel" data-act="ready-reset">Cancel</button>';
         }
+      } else if (s.kind === "bypass-confirm") {
+        html += "<h2>Log without a photo?</h2>";
+        html += '<div class="who-name">' + escapeHtml(QuadsParser.displayName(s.player)) + "</div>";
+        html += '<div class="rank-hero">' + escapeHtml(s.rank) + "</div>";
+        html += '<p class="need">Use this when a VIP keeps playing and the machine screen is already gone. This hand is saved as Unverified and does not count for the Quadzilla Leaderboard.</p>';
+        html += '<div class="sheet-field"><label for="bypass-staff">Bartender initials or name (optional)</label>';
+        html += '<input id="bypass-staff" data-sheet="staff" placeholder="e.g. JD" autocomplete="off" value="' + escapeHtml(s.staff || "") + '"></div>';
+        html += '<div class="sheet-field"><label for="bypass-reason">Reason</label>';
+        html += '<input id="bypass-reason" data-sheet="bypassReason" placeholder="VIP kept playing" autocomplete="off" value="' + escapeHtml(s.bypassReason || DEFAULT_BYPASS_REASON) + '"></div>';
+        html += '<button type="button" class="bypass-btn" data-act="bypass-confirm">Confirm bypass</button>';
+        html += '<button type="button" class="cancel" data-act="bypass-cancel">Cancel</button>';
       } else if (s.kind === "pin") {
         var pin = s.pin || "";
         html += "<h2>Manager PIN</h2>";
@@ -2165,18 +2273,59 @@ var QuadsProof = (function () {
       return html + "</div></div>";
     }
 
+    function renderBypassed() {
+      var list = bypassedEntries();
+      var counts = bypassCountsByPlayer();
+      var players = Object.keys(counts).map(function (id) {
+        return { player: findPlayer(id), id: id, count: counts[id] };
+      }).sort(function (a, b) { return b.count - a.count || QuadsParser.displayName(a.player || { first: "Unknown", last: "" }).localeCompare(QuadsParser.displayName(b.player || { first: "Unknown", last: "" })); });
+      var html = '<div class="card"><h2>Bypassed / Unverified Quads</h2>';
+      html += '<p class="need">VIP photo bypasses are logged here so they can be tracked. They do not count as 4Real and do not count on the Quadzilla Leaderboard. Sample rows are DEMO DATA.</p>';
+      html += '<p class="need">' + (list.length ? (list.length + " bypassed hand" + (list.length === 1 ? "" : "s") + ".") : "No bypassed quads yet.") + "</p></div>";
+      html += '<div class="card"><h2>By player</h2>';
+      if (!players.length) html += '<p class="need">No players have a bypassed hand yet.</p>';
+      else {
+        players.forEach(function (row) {
+          var name = row.player ? QuadsParser.displayName(row.player) : "Unknown";
+          var heavy = row.count >= 2;
+          html += '<div class="bypass-player-row' + (heavy ? " heavy" : "") + '"><div><div class="title">' + escapeHtml(name) + "</div>";
+          if (heavy) html += '<div class="meta">Heavy bypass use</div>';
+          html += '</div><div class="bypass-count">' + row.count + "</div></div>";
+        });
+      }
+      html += "</div>";
+      html += '<div class="card"><h2>Bypassed log</h2>';
+      if (!list.length) html += '<p class="need">When a bartender confirms a VIP bypass, it will show up here with the player, rank, time, bartender, and reason.</p>';
+      list.forEach(function (entry) {
+        var player = findPlayer(entry.playerId);
+        html += '<div class="bypass-entry"><div class="title">' + escapeHtml(player ? QuadsParser.displayName(player) : "Unknown") + " — " + escapeHtml(entry.rank) + "</div>";
+        html += '<div class="meta">' + escapeHtml(formatWhen(entry.atMs)) + " · Bartender " + escapeHtml(staffLabel(entry)) + " · " + escapeHtml(entry.bypassReason || DEFAULT_BYPASS_REASON) + " · DEMO DATA</div>";
+        html += proofBadges(entry);
+        html += "</div>";
+      });
+      html += "</div>";
+      return html;
+    }
     function renderSettings() {
       if (!ui.managerUnlocked) {
-        var locked = '<div class="card"><h2>Manager only</h2><p class="need">Settings, Reset, Close Week, and approvals need the manager PIN so bartenders can only log hits. Demo PIN: 1234.</p><button type="button" class="primary" data-act="unlock-manager">Enter PIN</button></div>';
+        var lockedCount = bypassedEntries().length;
+        var locked = '<div class="card"><h2>Manager only</h2><p class="need">Settings, Reset, Close Week, the Bypassed / Unverified list, and approvals need the manager PIN so bartenders can only log hits. Demo PIN: 1234.</p>';
+        locked += '<p class="need">' + (lockedCount ? ('<span class="bypass-count">' + lockedCount + "</span> bypassed / unverified quad" + (lockedCount === 1 ? " is" : "s are") + " waiting in the manager list.") : "No bypassed quads are on file right now.") + "</p>";
+        locked += '<button type="button" class="primary" data-act="unlock-manager">Enter PIN</button></div>';
         locked += '<div class="card"><h2>Session</h2><p class="need">Signs out of Quadzilla on this iPad. The sign-in screen comes back until someone logs in again.</p><button type="button" class="quiet" data-act="logout" style="width:100%">Log out</button></div>';
         return locked;
       }
       var s = state.settings;
-      var html = '<div class="card"><h2>Manager</h2><p class="need">Unlocked for this session. Bartenders do not see these controls.</p>';
+      var bypassList = bypassedEntries();
+      var html = '<div class="mgr-tabs">';
+      html += '<button type="button"' + (ui.settingsPane !== "bypassed" ? ' class="on"' : "") + ' data-act="settings-pane" data-pane="settings">Settings</button>';
+      html += '<button type="button"' + (ui.settingsPane === "bypassed" ? ' class="on"' : "") + ' data-act="settings-pane" data-pane="bypassed">Bypassed / Unverified' + (bypassList.length ? " (" + bypassList.length + ")" : "") + "</button></div>";
+      if (ui.settingsPane === "bypassed") return html + renderBypassed();
+      html += '<div class="card"><h2>Manager</h2><p class="need">Unlocked for this session. Bartenders do not see these controls.</p>';
       html += '<p class="need">Demo PIN: 1234</p>';
       html += '<button type="button" class="quiet" data-act="manager-lock" style="width:100%">Lock manager</button></div>';
       html += '<div class="card"><h2>Verification</h2>';
-      html += "<p class=\"need\">A hand is saved only after a live camera capture passes the AI scan. Photos can’t be uploaded or picked from the tablet library. An old or reused photo has the wrong time stamp and is rejected. Captures must be taken within about two minutes of OK, and each image hash can be used only once.</p>";
+      html += "<p class=\"need\">A hand is 4Real verified only after a live camera capture passes the AI scan. Photos can’t be uploaded or picked from the tablet library. An old or reused photo has the wrong time stamp and is rejected. Captures must be taken within about two minutes of OK, and each image hash can be used only once. If a VIP keeps playing and the screen is gone, use Bypass photo (VIP). That log is saved as Unverified and is tracked in the Bypassed list.</p>";
       html += "<p class=\"need\">This offline demo simulates a fast AI scan, then a 10-second 4Real success screen. The live version calls a vision AI model to read the four of a kind and the machine number off the screen, and to detect whether the cards are upside down.</p>";
       html += '<div class="toggle-row"><div><h3>Auto-flip upside-down photos</h3><p>On by default. Bartenders shoot the machine screen from across the bar, so the photo is often upside down. When this is on, the demo always flips the capture 180° before the scan and the watermark, so the stamp reads correctly. You can still use Rotate on the review step if the auto-flip is wrong.</p></div>';
       html += '<button type="button" class="switch' + (s.autoFlip ? " on" : "") + '" data-act="toggle-auto-flip" aria-pressed="' + (s.autoFlip ? "true" : "false") + '" aria-label="Auto-flip upside-down photos"></button></div>';
@@ -2203,7 +2352,7 @@ var QuadsProof = (function () {
       var body = ui.view === "log" ? renderLog() : ui.view === "players" ? renderPlayers() : ui.view === "drawing" ? renderDrawing() : ui.view === "settings" ? renderSettings() : renderActivity();
       var html = '<header class="top"><div><div class="brand-kicker">Four of a kind tracker · Demo</div>';
       html += '<div class="wordmark" role="heading" aria-level="1" aria-label="Quadzilla"><div class="wordmark-text">QUAD<span>ZILLA</span></div><div class="quad-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>';
-      html += '<p class="sub">Voice-first logging for four-of-a-kind ranks. All players are fake DEMO DATA. OK opens the camera. A hand is saved only after a live capture passes the scan. Photos can’t be uploaded.</p></div>';
+      html += '<p class="sub">Voice-first logging for four-of-a-kind ranks. All players are fake DEMO DATA. OK opens the camera. A hand is 4Real verified only after a live capture passes the scan. VIP clients who keep playing can be logged with Bypass photo, which stays Unverified. Photos can’t be uploaded.</p></div>';
       html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px"><span class="badge">DEMO DATA</span><span class="lock-chip">' + (ui.managerUnlocked ? "Manager unlocked" : "Bartender mode") + '</span></div></header><nav class="nav">';
       [["log", "Log"], ["players", "Players"], ["drawing", "Leaderboard"], ["activity", "Activity"], ["settings", "Settings"]].forEach(function (pair) {
         html += '<button type="button"' + (ui.view === pair[0] ? ' class="on"' : "") + ' data-act="view" data-view="' + pair[0] + '">' + pair[1] + "</button>";
@@ -2240,7 +2389,7 @@ var QuadsProof = (function () {
       state = makeInitialState();
       stopCamera();
       if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
-      ui.view = "log"; ui.query = ""; ui.typed = ""; ui.playerId = null; ui.sheet = null; ui.heard = ""; ui.pendingClose = false; ui.viewWeekId = state.currentWeekId; ui.managerUnlocked = false;
+      ui.view = "log"; ui.query = ""; ui.typed = ""; ui.playerId = null; ui.sheet = null; ui.heard = ""; ui.pendingClose = false; ui.viewWeekId = state.currentWeekId; ui.managerUnlocked = false; ui.settingsPane = "settings";
       try { localStorage.removeItem(STORAGE_KEY); } catch (err) {}
       showToast("Demo reset");
     }
@@ -2279,6 +2428,7 @@ var QuadsProof = (function () {
     }
     document.addEventListener("click", function (event) {
       if (event.target.classList && event.target.classList.contains("scrim")) {
+        if (ui.sheet && ui.sheet.kind === "bypass-confirm") { cancelBypassConfirm(); return; }
         if (ui.sheet && (ui.sheet.kind === "confirm" || ui.sheet.kind === "camera" || ui.sheet.kind === "scanning" || ui.sheet.kind === "scan-result")) { resetToReady(); return; }
         dismissSheet();
         render();
@@ -2297,6 +2447,13 @@ var QuadsProof = (function () {
       else if (act === "chip") { ui.typed = btn.getAttribute("data-phrase") || ""; handlePhrase(ui.typed); return; }
       else if (act === "ok-log") { openCameraFromOk(); return; }
       else if (act === "capture-frame") { captureLiveFrame(); return; }
+      else if (act === "bypass-open") { openBypassConfirm(); return; }
+      else if (act === "bypass-cancel") { cancelBypassConfirm(); return; }
+      else if (act === "bypass-confirm") { confirmBypass(); return; }
+      else if (act === "settings-pane") {
+        if (!ui.managerUnlocked) { openPin({ type: "view", view: "settings" }); render(); return; }
+        ui.settingsPane = btn.getAttribute("data-pane") === "bypassed" ? "bypassed" : "settings";
+      }
       else if (act === "scan-pass") { finishScanPass(); return; }
       else if (act === "scan-fail") { showFailReasons(); return; }
       else if (act === "scan-fail-cancel") {
@@ -2359,6 +2516,7 @@ var QuadsProof = (function () {
         if (ui.sheet) { openConfirm(picked, ui.sheet.rank, false); return; }
       }
       else if (act === "cancel") {
+        if (ui.sheet && ui.sheet.kind === "bypass-confirm") { cancelBypassConfirm(); return; }
         if (ui.sheet && (ui.sheet.kind === "confirm" || ui.sheet.kind === "camera" || ui.sheet.kind === "scanning" || ui.sheet.kind === "scan-result" || ui.sheet.kind === "success")) { resetToReady(); return; }
         dismissSheet();
       }
@@ -2427,6 +2585,8 @@ var QuadsProof = (function () {
     });
     document.addEventListener("input", function (event) {
       var el = event.target;
+      var sheetBind = el.getAttribute && el.getAttribute("data-sheet");
+      if (sheetBind && ui.sheet) ui.sheet[sheetBind] = el.value;
       var bind = el.getAttribute && el.getAttribute("data-bind");
       if (!bind) return;
       ui[bind] = el.value;
@@ -2436,6 +2596,10 @@ var QuadsProof = (function () {
       if (event.key === "Enter" && event.target && event.target.getAttribute("data-bind") === "typed") {
         event.preventDefault();
         if (ui.typed.trim()) handlePhrase(ui.typed.trim());
+      }
+      if (event.key === "Enter" && event.target && event.target.getAttribute("data-sheet") && ui.sheet && ui.sheet.kind === "bypass-confirm") {
+        event.preventDefault();
+        confirmBypass();
       }
       if (ui.sheet && ui.sheet.kind === "pin") {
         if (/^[0-9]$/.test(event.key)) {
